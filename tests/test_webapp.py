@@ -95,7 +95,7 @@ def test_export_matches_synthetic_csv_schema(client):
     assert exported_header == synthetic_header
 
 
-def test_no_auth_required_when_env_vars_unset(client, monkeypatch):
+def test_no_login_required_when_env_vars_unset(client, monkeypatch):
     monkeypatch.delenv("SOMNIA_USERNAME", raising=False)
     monkeypatch.delenv("SOMNIA_PASSWORD", raising=False)
     c, _ = client
@@ -103,30 +103,61 @@ def test_no_auth_required_when_env_vars_unset(client, monkeypatch):
     assert resp.status_code == 200
 
 
-def test_basic_auth_enforced_when_env_vars_set(tmp_path, monkeypatch):
+def _login_client(tmp_path, monkeypatch, username="zeyd", password="s3cret"):
     from src.webapp import db as db_module
 
     monkeypatch.setattr(db_module, "DB_PATH", tmp_path / "auth_entries.db")
     monkeypatch.setattr(db_module, "EXPORT_CSV_PATH", tmp_path / "auth_export.csv")
     db_module.init_db()
 
-    monkeypatch.setenv("SOMNIA_USERNAME", "zeyd")
-    monkeypatch.setenv("SOMNIA_PASSWORD", "s3cret")
+    monkeypatch.setenv("SOMNIA_USERNAME", username)
+    monkeypatch.setenv("SOMNIA_PASSWORD", password)
 
     from src.webapp import app as app_module
 
     importlib.reload(app_module)
     app_module.app.config.update(TESTING=True)
-    with app_module.app.test_client() as c:
-        resp = c.get("/")
-        assert resp.status_code == 401
+    return app_module.app.test_client()
 
-        import base64
 
-        bad = base64.b64encode(b"zeyd:wrong").decode()
-        resp = c.get("/", headers={"Authorization": f"Basic {bad}"})
-        assert resp.status_code == 401
+def test_redirects_to_login_when_env_vars_set(tmp_path, monkeypatch):
+    with _login_client(tmp_path, monkeypatch) as c:
+        resp = c.get("/", follow_redirects=False)
+        assert resp.status_code == 302
+        assert "/login" in resp.headers["Location"]
 
-        good = base64.b64encode(b"zeyd:s3cret").decode()
-        resp = c.get("/", headers={"Authorization": f"Basic {good}"})
+
+def test_login_wrong_credentials_rejected(tmp_path, monkeypatch):
+    with _login_client(tmp_path, monkeypatch) as c:
+        resp = c.post(
+            "/login", data={"username": "zeyd", "password": "wrong"}, follow_redirects=True
+        )
         assert resp.status_code == 200
+        assert "hatalı".encode() in resp.data
+        # Giriş yapılmadığı için hâlâ ana sayfaya erişemiyor olmalı.
+        resp2 = c.get("/", follow_redirects=False)
+        assert resp2.status_code == 302
+
+
+def test_login_correct_credentials_grants_session_access(tmp_path, monkeypatch):
+    with _login_client(tmp_path, monkeypatch) as c:
+        resp = c.post(
+            "/login",
+            data={"username": "zeyd", "password": "s3cret"},
+            follow_redirects=True,
+        )
+        assert resp.status_code == 200
+        # Session çerezi kuruldu; artık ana sayfa doğrudan erişilebilir.
+        resp2 = c.get("/")
+        assert resp2.status_code == 200
+        assert "Henüz kayıt yok".encode() in resp2.data
+
+
+def test_logout_revokes_session_access(tmp_path, monkeypatch):
+    with _login_client(tmp_path, monkeypatch) as c:
+        c.post("/login", data={"username": "zeyd", "password": "s3cret"}, follow_redirects=True)
+        assert c.get("/").status_code == 200
+
+        c.post("/logout", follow_redirects=True)
+        resp = c.get("/", follow_redirects=False)
+        assert resp.status_code == 302

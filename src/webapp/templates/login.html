@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SOMNIA — Giriş</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand">
+      <svg viewBox="0 0 44 56" width="17.29" height="22" fill="none" style="overflow:visible; flex-shrink:0; position:relative; top:-1px;" aria-hidden="true">
+        <path d="M33 11 C36 3 10 2 11 14 C11 24 33 32 33 42 C34 54 10 54 11 45" stroke="var(--ink)" stroke-width="1.62" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="22" cy="5" r="1.43" fill="var(--c-accent)"/>
+        <circle cx="22" cy="28" r="0.97" fill="var(--c-accent)"/>
+        <circle cx="22" cy="51" r="1.43" fill="var(--c-accent)"/>
+      </svg>
+      <span>SOMNIA</span> <span class="muted">— Günlük Veri Girişi</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" style="max-width: 420px; padding-top: 64px;">
+  {% if error %}
+    <div class="flash error">{{ error }}</div>
+  {% endif %}
+
+  <section class="card">
+    <h2>Giriş yap</h2>
+    <p class="card-sub">Bu form kişisel veri içerir — devam etmek için giriş yap.</p>
+
+    <form method="post">
+      <input type="hidden" name="next" value="{{ next }}" />
+      <div class="field-grid" style="grid-template-columns: 1fr;">
+        <div class="field">
+          <label for="username">Kullanıcı adı</label>
+          <input type="text" id="username" name="username" required autofocus autocomplete="username" />
+        </div>
+        <div class="field">
+          <label for="password">Şifre</label>
+          <input type="password" id="password" name="password" required autocomplete="current-password" />
+        </div>
+      </div>
+      <div class="actions" style="margin-top: 18px;">
+        <button type="submit" class="primary">Giriş yap</button>
+      </div>
+    </form>
+  </section>
+</main>
+
+<footer class="wrap">
+  SOMNIA — kişisel/lokal kullanım için tasarlanmıştır.
+</footer>
+
+</body>
+</html>

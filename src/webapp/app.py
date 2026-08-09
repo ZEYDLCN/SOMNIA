@@ -5,16 +5,22 @@ Lokal kullanım:
     python -m src.webapp.app
     -> http://127.0.0.1:5000
 
-Uzak/deploy edilmiş kullanım (ör. Render free tier — bkz. DEPLOY.md):
+Uzak/deploy edilmiş kullanım (PythonAnywhere/Render — bkz. DEPLOY.md):
     SOMNIA_USERNAME, SOMNIA_PASSWORD ortam değişkenleri set edildiğinde
-    tüm route'lar HTTP Basic Auth ile korunur. Bu değişkenler set
-    edilmezse (varsayılan lokal geliştirme durumu) kimlik doğrulama
-    devre dışı kalır — bilerek: localhost'ta ekstra adım istemiyoruz.
+    tüm route'lar kendi giriş sayfamız (/login, session çerezi) ile
+    korunur. Bu değişkenler set edilmezse (varsayılan lokal geliştirme
+    durumu) kimlik doğrulama devre dışı kalır — bilerek: localhost'ta
+    ekstra adım istemiyoruz.
 
-    ÖNEMLİ: Render'ın ücretsiz planında disk KALICI DEĞİLDİR — servis
-    yeniden başladığında/redeploy olduğunda `data/real_entries.db`
-    SIFIRLANABİLİR. Girdiğin veriyi düzenli aralıklarla "İndir" ile
-    yedekle. Detaylar için DEPLOY.md.
+    NOT: Daha önce HTTP Basic Auth kullanılıyordu; bazı platformların
+    proxy'si tarayıcının native Basic Auth pop-up'ını güvenilir şekilde
+    tetiklemediği için (PythonAnywhere'de gözlemlendi) kendi giriş
+    formumuza geçildi — daha öngörülebilir ve debug edilmesi kolay.
+
+    ÖNEMLİ: Bazı ücretsiz platformlarda (ör. Render) disk KALICI
+    DEĞİLDİR — servis yeniden başladığında/redeploy olduğunda
+    `data/real_entries.db` SIFIRLANABİLİR. Girdiğin veriyi düzenli
+    aralıklarla "İndir" ile yedekle. Detaylar için DEPLOY.md.
 
 Girilen veri `data/real_entries.db` (SQLite) içinde saklanır; "Dışa
 Aktar" ile `data/real_sleep_data.csv`'ye — sentetik veriyle birebir aynı
@@ -30,41 +36,73 @@ import hmac
 import os
 from datetime import date as date_cls
 
-from flask import Flask, Response, flash, redirect, render_template, request, send_file, url_for
+from flask import (
+    Flask,
+    flash,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    session,
+    url_for,
+)
 
 from src.webapp import db
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SOMNIA_SECRET_KEY", "somnia-local-dev-only")
 
+# Session çerezinin adı — /login başarılı olunca session[SESSION_KEY] = True
+SESSION_KEY = "somnia_authed"
 
-def _basic_auth_configured() -> bool:
+
+def _auth_configured() -> bool:
     return bool(os.environ.get("SOMNIA_USERNAME") and os.environ.get("SOMNIA_PASSWORD"))
 
 
 @app.before_request
-def require_auth_if_configured():
+def require_login_if_configured():
     """SOMNIA_USERNAME/SOMNIA_PASSWORD set edilmişse (deploy senaryosu)
-    her isteği HTTP Basic Auth ile korur. Lokal kullanımda (env değişkenleri
-    yoksa) hiçbir şey değişmez — no-op."""
-    if not _basic_auth_configured():
+    /login ve statik dosyalar hariç her isteği, session çerezi ile giriş
+    yapılmış olmaya zorlar. Lokal kullanımda (env değişkenleri yoksa)
+    hiçbir şey değişmez — no-op."""
+    if not _auth_configured():
         return None
+    if request.endpoint in ("login", "static"):
+        return None
+    if session.get(SESSION_KEY):
+        return None
+    return redirect(url_for("login", next=request.path))
 
-    auth = request.authorization
-    expected_user = os.environ["SOMNIA_USERNAME"]
-    expected_pass = os.environ["SOMNIA_PASSWORD"]
-    valid = (
-        auth is not None
-        and hmac.compare_digest(auth.username or "", expected_user)
-        and hmac.compare_digest(auth.password or "", expected_pass)
-    )
-    if not valid:
-        return Response(
-            "Kimlik doğrulama gerekli.",
-            401,
-            {"WWW-Authenticate": 'Basic realm="SOMNIA"'},
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if not _auth_configured():
+        return redirect(url_for("index"))
+
+    error = None
+    if request.method == "POST":
+        expected_user = os.environ["SOMNIA_USERNAME"]
+        expected_pass = os.environ["SOMNIA_PASSWORD"]
+        given_user = request.form.get("username", "")
+        given_pass = request.form.get("password", "")
+        valid = hmac.compare_digest(given_user, expected_user) and hmac.compare_digest(
+            given_pass, expected_pass
         )
-    return None
+        if valid:
+            session[SESSION_KEY] = True
+            session.permanent = True
+            next_url = request.form.get("next") or url_for("index")
+            return redirect(next_url)
+        error = "Kullanıcı adı veya şifre hatalı."
+
+    return render_template("login.html", error=error, next=request.args.get("next", ""))
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    session.pop(SESSION_KEY, None)
+    return redirect(url_for("login"))
 
 
 def _validate(form: dict) -> tuple[dict, list[str]]:
@@ -130,6 +168,7 @@ def index():
         prefill=prefill,
         today=date_cls.today().isoformat(),
         n_entries=db.count_entries(),
+        auth_enabled=_auth_configured(),
     )
 
 
