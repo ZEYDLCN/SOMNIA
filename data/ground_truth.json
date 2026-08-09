@@ -1,0 +1,15 @@
+{
+  "caffeine_close_to_bed_effect": -2.5,
+  "caffeine_effect_window_hours": 6.0,
+  "stress_effect_per_point": -0.3,
+  "screen_effect_per_hour": -1.0,
+  "exercise_boost": 0.8,
+  "exercise_late_penalty": -0.5,
+  "temp_ideal_c": 19.5,
+  "temp_penalty_per_degree": -0.2,
+  "noise_penalty_per_10db": -0.25,
+  "late_meal_penalty": -0.8,
+  "day_persistence": 0.3,
+  "stress_confounds_caffeine": 0.35,
+  "note": "Bu değerler sadece veri üretimi ve sonraki doğrulama için; modele verilmez."
+}
