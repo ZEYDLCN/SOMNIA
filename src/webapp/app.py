@@ -1,38 +1,36 @@
 """
-Günlük veri girişi web formu — SOMNIA (adım 9)
+Günlük veri girişi web formu — SOMNIA (adım 9, çok kullanıcılı)
 
 Lokal kullanım:
     python -m src.webapp.app
     -> http://127.0.0.1:5000
 
-Uzak/deploy edilmiş kullanım (PythonAnywhere/Render — bkz. DEPLOY.md):
-    SOMNIA_USERNAME, SOMNIA_PASSWORD ortam değişkenleri set edildiğinde
-    tüm route'lar kendi giriş sayfamız (/login, session çerezi) ile
-    korunur. Bu değişkenler set edilmezse (varsayılan lokal geliştirme
-    durumu) kimlik doğrulama devre dışı kalır — bilerek: localhost'ta
-    ekstra adım istemiyoruz.
+Her kullanıcı kendi hesabını oluşturur (/register) ve giriş yapar
+(/login); her kullanıcının kayıtları birbirinden izoledir — kimse
+başkasının verisini göremez/düzenleyemez (bkz. src/webapp/db.py,
+entries.user_id). Giriş her ortamda (lokal dahil) zorunludur — bu,
+localhost'ta bile birden fazla kişi test edebilsin diye bilinçli bir
+tercih.
 
-    NOT: Daha önce HTTP Basic Auth kullanılıyordu; bazı platformların
-    proxy'si tarayıcının native Basic Auth pop-up'ını güvenilir şekilde
-    tetiklemediği için (PythonAnywhere'de gözlemlendi) kendi giriş
-    formumuza geçildi — daha öngörülebilir ve debug edilmesi kolay.
+Deploy notu (PythonAnywhere/Render — bkz. DEPLOY.md): sadece
+SOMNIA_SECRET_KEY ortam değişkeni gerekir (session imzalamak için).
+Sabit bir kullanıcı adı/şifre YOK artık — herkes kendi hesabını açar.
 
-    ÖNEMLİ: Bazı ücretsiz platformlarda (ör. Render) disk KALICI
-    DEĞİLDİR — servis yeniden başladığında/redeploy olduğunda
-    `data/real_entries.db` SIFIRLANABİLİR. Girdiğin veriyi düzenli
-    aralıklarla "İndir" ile yedekle. Detaylar için DEPLOY.md.
+ÖNEMLİ: Bazı ücretsiz platformlarda (ör. Render) disk KALICI DEĞİLDİR —
+servis yeniden başladığında/redeploy olduğunda `data/real_entries.db`
+SIFIRLANABİLİR (tüm hesaplar dahil). Düzenli aralıklarla "İndir" ile
+kendi verini yedekle. Detaylar için DEPLOY.md.
 
 Girilen veri `data/real_entries.db` (SQLite) içinde saklanır; "Dışa
-Aktar" ile `data/real_sleep_data.csv`'ye — sentetik veriyle birebir aynı
-şemada — export edilir, böylece `src/data/preprocessing.py` ve
-devamındaki tüm pipeline (baseline'lar, Transformer, attention,
-causality) gerçek veri üzerinde de hiçbir kod değişikliği gerektirmeden
-çalışabilir.
+Aktar" ile `data/real_sleep_data_<kullanıcı_adı>.csv`'ye — sentetik
+veriyle birebir aynı şemada — export edilir, böylece
+`src/data/preprocessing.py` ve devamındaki tüm pipeline (baseline'lar,
+Transformer, attention, causality) bir kullanıcının gerçek verisi
+üzerinde de hiçbir kod değişikliği gerektirmeden çalışabilir.
 """
 
 from __future__ import annotations
 
-import hmac
 import os
 from datetime import date as date_cls
 
@@ -52,45 +50,69 @@ from src.webapp import db
 app = Flask(__name__)
 app.secret_key = os.environ.get("SOMNIA_SECRET_KEY", "somnia-local-dev-only")
 
-# Session çerezinin adı — /login başarılı olunca session[SESSION_KEY] = True
-SESSION_KEY = "somnia_authed"
-
-
-def _auth_configured() -> bool:
-    return bool(os.environ.get("SOMNIA_USERNAME") and os.environ.get("SOMNIA_PASSWORD"))
+PUBLIC_ENDPOINTS = {"login", "register", "static"}
 
 
 @app.before_request
-def require_login_if_configured():
-    """SOMNIA_USERNAME/SOMNIA_PASSWORD set edilmişse (deploy senaryosu)
-    /login ve statik dosyalar hariç her isteği, session çerezi ile giriş
-    yapılmış olmaya zorlar. Lokal kullanımda (env değişkenleri yoksa)
-    hiçbir şey değişmez — no-op."""
-    if not _auth_configured():
+def require_login():
+    """Statik dosyalar ve login/register dışında her istek, oturum
+    açmış (session['user_id']) olmayı gerektirir."""
+    if request.endpoint in PUBLIC_ENDPOINTS:
         return None
-    if request.endpoint in ("login", "static"):
-        return None
-    if session.get(SESSION_KEY):
+    if session.get("user_id"):
         return None
     return redirect(url_for("login", next=request.path))
 
 
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if not _auth_configured():
+def _current_user() -> dict | None:
+    user_id = session.get("user_id")
+    if not user_id:
+        return None
+    row = db.get_user_by_id(user_id)
+    return dict(row) if row else None
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if session.get("user_id"):
         return redirect(url_for("index"))
 
     error = None
     if request.method == "POST":
-        expected_user = os.environ["SOMNIA_USERNAME"]
-        expected_pass = os.environ["SOMNIA_PASSWORD"]
-        given_user = request.form.get("username", "")
-        given_pass = request.form.get("password", "")
-        valid = hmac.compare_digest(given_user, expected_user) and hmac.compare_digest(
-            given_pass, expected_pass
-        )
-        if valid:
-            session[SESSION_KEY] = True
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        password2 = request.form.get("password2", "")
+
+        error = db.validate_username(username) or db.validate_password(password)
+        if not error and password != password2:
+            error = "Şifreler eşleşmiyor."
+
+        if not error:
+            try:
+                user_id = db.create_user(username, password)
+            except db.UsernameTakenError:
+                error = "Bu kullanıcı adı zaten alınmış."
+            else:
+                session["user_id"] = user_id
+                session.permanent = True
+                flash(f"Hoş geldin, {username}!", "success")
+                return redirect(url_for("index"))
+
+    return render_template("register.html", error=error)
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if session.get("user_id"):
+        return redirect(url_for("index"))
+
+    error = None
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        user = db.get_user_by_username(username)
+        if user and db.verify_password(user, password):
+            session["user_id"] = user["id"]
             session.permanent = True
             next_url = request.form.get("next") or url_for("index")
             return redirect(next_url)
@@ -101,7 +123,7 @@ def login():
 
 @app.route("/logout", methods=["POST"])
 def logout():
-    session.pop(SESSION_KEY, None)
+    session.pop("user_id", None)
     return redirect(url_for("login"))
 
 
@@ -147,15 +169,16 @@ def _validate(form: dict) -> tuple[dict, list[str]]:
 @app.route("/", methods=["GET"])
 def index():
     db.init_db()
+    user = _current_user()
 
     edit_date = request.args.get("edit")
     prefill = None
     if edit_date:
-        row = db.get_entry(edit_date)
+        row = db.get_entry(user["id"], edit_date)
         if row:
             prefill = dict(row)
 
-    entries = db.list_entries(limit=30)
+    entries = db.list_entries(user["id"], limit=30)
     fields_by_name = {
         name: {"label": label, "type": ftype, "min": lo, "max": hi, "step": step, "help": help_}
         for name, label, ftype, lo, hi, step, help_ in db.FIELD_SPECS
@@ -167,28 +190,30 @@ def index():
         entries=entries,
         prefill=prefill,
         today=date_cls.today().isoformat(),
-        n_entries=db.count_entries(),
-        auth_enabled=_auth_configured(),
+        n_entries=db.count_entries(user["id"]),
+        username=user["username"],
     )
 
 
 @app.route("/entries", methods=["POST"])
 def save_entry():
     db.init_db()
+    user = _current_user()
     cleaned, errors = _validate(request.form)
     if errors:
         for e in errors:
             flash(e, "error")
         return redirect(url_for("index", edit=cleaned.get("date") or None))
 
-    db.upsert_entry(cleaned)
+    db.upsert_entry(user["id"], cleaned)
     flash(f"{cleaned['date']} için kayıt kaydedildi.", "success")
     return redirect(url_for("index"))
 
 
 @app.route("/entries/<entry_date>/delete", methods=["POST"])
 def delete_entry(entry_date: str):
-    db.delete_entry(entry_date)
+    user = _current_user()
+    db.delete_entry(user["id"], entry_date)
     flash(f"{entry_date} kaydı silindi.", "success")
     return redirect(url_for("index"))
 
@@ -196,20 +221,23 @@ def delete_entry(entry_date: str):
 @app.route("/export", methods=["POST"])
 def export():
     db.init_db()
-    if db.count_entries() == 0:
+    user = _current_user()
+    if db.count_entries(user["id"]) == 0:
         flash("Dışa aktarılacak kayıt yok.", "error")
         return redirect(url_for("index"))
-    path, n = db.export_to_csv()
+    path, n = db.export_to_csv(user["id"], user["username"])
     flash(f"{n} kayıt {path.name} dosyasına aktarıldı.", "success")
     return redirect(url_for("index"))
 
 
 @app.route("/export/download", methods=["GET"])
 def download_export():
-    if not db.EXPORT_CSV_PATH.exists():
+    user = _current_user()
+    path = db.export_path_for(user["username"])
+    if not path.exists():
         flash("Önce 'Dışa Aktar'a bas.", "error")
         return redirect(url_for("index"))
-    return send_file(db.EXPORT_CSV_PATH, as_attachment=True, download_name="real_sleep_data.csv")
+    return send_file(path, as_attachment=True, download_name=path.name)
 
 
 def main() -> None:

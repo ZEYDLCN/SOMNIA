@@ -7,7 +7,7 @@ data/processed/
 checkpoints/
 # Kişisel sağlık verisi — web formundan girilen gerçek kayıtlar repoya işlenmez.
 data/real_entries.db
-data/real_sleep_data.csv
+data/real_sleep_data*.csv
 .ipynb_checkpoints/
 *.egg-info/
 .DS_Store

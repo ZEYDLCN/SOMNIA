@@ -16,11 +16,7 @@ services:
     branch: main
     buildCommand: pip install -r requirements-webapp.txt
     startCommand: gunicorn -w 2 -b 0.0.0.0:$PORT src.webapp.app:app
-    healthCheckPath: /
+    healthCheckPath: /login  # / artık girişsiz 302 döner; /login her zaman 200
     envVars:
-      - key: SOMNIA_USERNAME
-        sync: false # Render dashboard'undan elle gir — repoya yazılmaz
-      - key: SOMNIA_PASSWORD
-        sync: false # Render dashboard'undan elle gir — repoya yazılmaz
       - key: SOMNIA_SECRET_KEY
         generateValue: true

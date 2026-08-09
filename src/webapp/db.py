@@ -1,26 +1,31 @@
 """
-SQLite depolama katmanı — SOMNIA günlük veri girişi web formu.
+SQLite depolama katmanı — SOMNIA günlük veri girişi web formu (çok kullanıcılı).
 
-Adım 9'un ilk parçası (bkz. docs/plan.md §3.2): kullanıcının her gün
-tarayıcıdan dolduracağı bir form burada saklanır. Şema, sentetik veriyle
-(data/synthetic_sleep_data.csv) BİREBİR AYNI sütunları kullanır — böylece
-`src/data/preprocessing.py` ve devamındaki tüm pipeline hiçbir değişiklik
-gerektirmeden gerçek veri üzerinde de çalışabilir (bkz. export_to_csv).
+Adım 9'un ilk parçası (bkz. docs/plan.md §3.2): her kullanıcının kendi
+hesabıyla (kayıt/giriş) günlük verisini girdiği bir form. Her kullanıcının
+kayıtları birbirinden İZOLE'dir (entries.user_id ile). Dışa aktarılan CSV
+şeması, sentetik veriyle (data/synthetic_sleep_data.csv) BİREBİR AYNI
+sütunları kullanır — böylece `src/data/preprocessing.py` ve devamındaki
+tüm pipeline hiçbir değişiklik gerektirmeden bir kullanıcının gerçek
+verisi üzerinde de çalışabilir (bkz. export_to_csv).
 
-Not: Veritabanı ve dışa aktarılan CSV kişisel sağlık verisi içerir; bu
-yüzden .gitignore'da tutulur ve repoya işlenmez.
+Not: Veritabanı ve dışa aktarılan CSV'ler kişisel sağlık verisi içerir;
+bu yüzden .gitignore'da tutulur ve repoya işlenmez.
 """
 
 from __future__ import annotations
 
 import csv
+import re
 import sqlite3
 from datetime import date as date_cls
 from pathlib import Path
 
+from werkzeug.security import check_password_hash, generate_password_hash
+
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 DB_PATH = DATA_DIR / "real_entries.db"
-EXPORT_CSV_PATH = DATA_DIR / "real_sleep_data.csv"
+EXPORT_DIR = DATA_DIR
 
 CSV_COLUMNS = [
     "date",
@@ -56,11 +61,14 @@ FIELD_SPECS = [
     ("last_meal_delta_hr", "Son yemek → yatış (saat)", "number", 0, 12, 0.1, "Son yemekten yatışa kadar geçen süre."),
 ]
 
+USERNAME_RE = re.compile(r"^[a-zA-Z0-9_.-]{3,32}$")
+
 
 def get_connection() -> sqlite3.Connection:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
@@ -68,8 +76,19 @@ def init_db() -> None:
     with get_connection() as conn:
         conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """
+        )
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS entries (
-                date TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                date TEXT NOT NULL,
                 stress_score REAL NOT NULL,
                 caffeine_mg REAL NOT NULL,
                 caffeine_hours_before_bed REAL NOT NULL,
@@ -81,30 +100,91 @@ def init_db() -> None:
                 last_meal_delta_hr REAL NOT NULL,
                 sleep_duration_min REAL NOT NULL,
                 sleep_quality REAL NOT NULL,
-                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+                updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+                PRIMARY KEY (user_id, date)
             )
             """
         )
 
 
-def upsert_entry(data: dict) -> None:
-    """`date` alanına göre INSERT OR REPLACE — aynı günü tekrar
-    doldurmak, önceki kaydı düzeltir (upsert)."""
+# ---------------------------------------------------------------------------
+# Kullanıcılar
+# ---------------------------------------------------------------------------
+
+
+class UsernameTakenError(Exception):
+    pass
+
+
+def validate_username(username: str) -> str | None:
+    if not USERNAME_RE.match(username or ""):
+        return "Kullanıcı adı 3-32 karakter olmalı; sadece harf, rakam, '_', '.', '-' içerebilir."
+    return None
+
+
+def validate_password(password: str) -> str | None:
+    if not password or len(password) < 8:
+        return "Şifre en az 8 karakter olmalı."
+    return None
+
+
+def create_user(username: str, password: str) -> int:
+    """Yeni kullanıcı oluşturur, şifreyi hash'ler. Kullanıcı adı zaten
+    varsa UsernameTakenError fırlatır."""
+    with get_connection() as conn:
+        existing = conn.execute(
+            "SELECT id FROM users WHERE username = ?", (username,)
+        ).fetchone()
+        if existing:
+            raise UsernameTakenError(username)
+        cur = conn.execute(
+            "INSERT INTO users (username, password_hash) VALUES (?, ?)",
+            (username, generate_password_hash(password)),
+        )
+        return cur.lastrowid
+
+
+def get_user_by_username(username: str) -> sqlite3.Row | None:
+    with get_connection() as conn:
+        return conn.execute(
+            "SELECT * FROM users WHERE username = ?", (username,)
+        ).fetchone()
+
+
+def get_user_by_id(user_id: int) -> sqlite3.Row | None:
+    with get_connection() as conn:
+        return conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+
+
+def verify_password(user_row: sqlite3.Row, password: str) -> bool:
+    return check_password_hash(user_row["password_hash"], password)
+
+
+# ---------------------------------------------------------------------------
+# Girdiler (kullanıcıya özel)
+# ---------------------------------------------------------------------------
+
+
+def upsert_entry(user_id: int, data: dict) -> None:
+    """`(user_id, date)` çiftine göre INSERT OR REPLACE — aynı kullanıcı
+    aynı günü tekrar doldurursa önceki kaydı düzeltir (upsert). Farklı
+    kullanıcılar aynı tarihi bağımsız olarak kullanabilir."""
+    payload = dict(data, user_id=user_id)
     with get_connection() as conn:
         conn.execute(
             """
             INSERT INTO entries (
-                date, stress_score, caffeine_mg, caffeine_hours_before_bed,
+                user_id, date, stress_score, caffeine_mg, caffeine_hours_before_bed,
                 screen_time_before_bed_min, room_temp_c, noise_level_db,
                 exercise_minutes, exercise_time_of_day, last_meal_delta_hr,
                 sleep_duration_min, sleep_quality, updated_at
             ) VALUES (
-                :date, :stress_score, :caffeine_mg, :caffeine_hours_before_bed,
+                :user_id, :date, :stress_score, :caffeine_mg, :caffeine_hours_before_bed,
                 :screen_time_before_bed_min, :room_temp_c, :noise_level_db,
                 :exercise_minutes, :exercise_time_of_day, :last_meal_delta_hr,
                 :sleep_duration_min, :sleep_quality, datetime('now')
             )
-            ON CONFLICT(date) DO UPDATE SET
+            ON CONFLICT(user_id, date) DO UPDATE SET
                 stress_score=excluded.stress_score,
                 caffeine_mg=excluded.caffeine_mg,
                 caffeine_hours_before_bed=excluded.caffeine_hours_before_bed,
@@ -118,46 +198,55 @@ def upsert_entry(data: dict) -> None:
                 sleep_quality=excluded.sleep_quality,
                 updated_at=datetime('now')
             """,
-            data,
+            payload,
         )
 
 
-def delete_entry(entry_date: str) -> None:
+def delete_entry(user_id: int, entry_date: str) -> None:
     with get_connection() as conn:
-        conn.execute("DELETE FROM entries WHERE date = ?", (entry_date,))
+        conn.execute(
+            "DELETE FROM entries WHERE user_id = ? AND date = ?", (user_id, entry_date)
+        )
 
 
-def get_entry(entry_date: str) -> sqlite3.Row | None:
+def get_entry(user_id: int, entry_date: str) -> sqlite3.Row | None:
     with get_connection() as conn:
-        return conn.execute("SELECT * FROM entries WHERE date = ?", (entry_date,)).fetchone()
+        return conn.execute(
+            "SELECT * FROM entries WHERE user_id = ? AND date = ?", (user_id, entry_date)
+        ).fetchone()
 
 
-def list_entries(limit: int | None = None) -> list[sqlite3.Row]:
-    query = "SELECT * FROM entries ORDER BY date DESC"
+def list_entries(user_id: int, limit: int | None = None) -> list[sqlite3.Row]:
+    query = "SELECT * FROM entries WHERE user_id = ? ORDER BY date DESC"
     if limit:
         query += f" LIMIT {int(limit)}"
     with get_connection() as conn:
-        return conn.execute(query).fetchall()
+        return conn.execute(query, (user_id,)).fetchall()
 
 
-def count_entries() -> int:
+def count_entries(user_id: int) -> int:
     with get_connection() as conn:
-        return conn.execute("SELECT COUNT(*) AS n FROM entries").fetchone()["n"]
+        return conn.execute(
+            "SELECT COUNT(*) AS n FROM entries WHERE user_id = ?", (user_id,)
+        ).fetchone()["n"]
 
 
-def export_to_csv(out_path: Path | None = None) -> tuple[Path, int]:
-    """Tüm kayıtları, sentetik veriyle birebir aynı şemada, tarihe göre
-    artan sırada bir CSV'ye yazar — src/data/preprocessing.py bunu
-    doğrudan (RAW_CSV yolunu değiştirerek) okuyabilir.
+def export_path_for(username: str) -> Path:
+    safe = re.sub(r"[^a-zA-Z0-9_.-]", "_", username)
+    return EXPORT_DIR / f"real_sleep_data_{safe}.csv"
 
-    `out_path` varsayılanı modül seviyesindeki EXPORT_CSV_PATH'e göre
-    ÇAĞRI ANINDA çözülür (fonksiyon tanımlanırken değil) — böylece testler
-    modülün EXPORT_CSV_PATH'ini monkeypatch edip gerçek kullanım kodunu
-    (`db.export_to_csv()`) değişiklik yapmadan izole çalıştırabilir."""
+
+def export_to_csv(user_id: int, username: str, out_path: Path | None = None) -> tuple[Path, int]:
+    """Bir kullanıcının TÜM kayıtlarını, sentetik veriyle birebir aynı
+    şemada, tarihe göre artan sırada bir CSV'ye yazar. Dosya adı
+    kullanıcıya özeldir (real_sleep_data_<username>.csv) — farklı
+    kullanıcıların export'ları birbirine karışmaz/üzerine yazmaz."""
     if out_path is None:
-        out_path = EXPORT_CSV_PATH
+        out_path = export_path_for(username)
     with get_connection() as conn:
-        rows = conn.execute("SELECT * FROM entries ORDER BY date ASC").fetchall()
+        rows = conn.execute(
+            "SELECT * FROM entries WHERE user_id = ? ORDER BY date ASC", (user_id,)
+        ).fetchall()
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with open(out_path, "w", newline="") as f:

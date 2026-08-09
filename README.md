@@ -281,29 +281,32 @@ python -m src.webapp.app
 
 Sentetik veriyle sınırlı kalmak istemeyenler için: kendi günlük verini
 (uyku süresi/kalitesi, stres, kafein, ekran süresi, egzersiz, oda
-sıcaklığı, gürültü, son yemek) girebileceğin küçük bir Flask + SQLite
-uygulaması. Tasarımı `docs/index.html` ile aynı renk/tipografi
-sistemini paylaşır.
+sıcaklığı, gürültü, son yemek) girebileceğin, **çok kullanıcılı** küçük
+bir Flask + SQLite uygulaması — herkes kendi hesabını açar (`/register`),
+kayıtlar kullanıcılar arasında tamamen izoledir (kimse başkasının
+verisini göremez/düzenleyemez). Tasarımı `docs/index.html` ile aynı
+renk/tipografi sistemini paylaşır.
 
-- Kayıtlar `data/real_entries.db` (SQLite) içinde tutulur; **aynı tarihi
-  tekrar girersen önceki kayıt güncellenir (upsert)**, düzenleme ve
-  silme desteklenir.
-- "CSV'ye dışa aktar" ile `data/real_sleep_data.csv` üretilir —
-  `data/synthetic_sleep_data.csv` ile **birebir aynı şemada**, yani
-  `src/data/preprocessing.py` içindeki `RAW_CSV`'yi bu dosyaya
-  çevirerek baseline'lar, Transformer, attention ve causality
-  pipeline'larının tamamını hiçbir kod değişikliği yapmadan gerçek
+- Her kullanıcının kayıtları `data/real_entries.db` (SQLite,
+  `entries.user_id` ile izole) içinde tutulur; **aynı tarihi tekrar
+  girersen önceki kayıt güncellenir (upsert)**, düzenleme ve silme
+  desteklenir.
+- "CSV'ye dışa aktar" ile `data/real_sleep_data_<kullanıcı_adı>.csv`
+  üretilir — `data/synthetic_sleep_data.csv` ile **birebir aynı
+  şemada**, yani `src/data/preprocessing.py` içindeki `RAW_CSV`'yi bu
+  dosyaya çevirerek baseline'lar, Transformer, attention ve causality
+  pipeline'larının tamamını hiçbir kod değişikliği yapmadan kendi gerçek
   verinle çalıştırabilirsin.
 - Kişisel sağlık verisi içerdiğinden `data/real_entries.db` ve
-  `data/real_sleep_data.csv` `.gitignore`'dadır — repoya işlenmez.
-- Lokalde kimlik doğrulama yoktur. `SOMNIA_USERNAME`/`SOMNIA_PASSWORD`
-  ortam değişkenleri set edilirse (deploy senaryosu) tüm route'lar HTTP
-  Basic Auth ile korunur.
+  `data/real_sleep_data_*.csv` `.gitignore`'dadır — repoya işlenmez.
+- Şifreler `werkzeug.security` ile hash'lenir (düz metin saklanmaz).
+  Giriş **her ortamda zorunludur** (lokal dahil) — sabit bir kullanıcı
+  adı/şifre yok, herkes kendi hesabını açar.
 
 ## Deployment (ücretsiz)
 
 - **Sonuç raporu** (`docs/index.html`) → GitHub Pages, `.github/workflows/deploy-pages.yml` ile otomatik.
-- **Veri girişi formu** (`src/webapp/`) → PythonAnywhere free tier (önerilen — soğuk başlangıç yok, kart istemiyor). Alternatif: Render.com, `render.yaml` ile hazır (Basic Auth her ikisinde de zorunlu).
+- **Veri girişi formu** (`src/webapp/`) → PythonAnywhere free tier (önerilen — soğuk başlangıç yok, kart istemiyor). Alternatif: Render.com, `render.yaml` ile hazır.
 
 Adım adım kurulum, free tier sınırlamaları ve neden ayrı bir
 `requirements-webapp.txt` kullanıldığı için: **[`DEPLOY.md`](DEPLOY.md)**.

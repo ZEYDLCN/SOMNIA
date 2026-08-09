@@ -56,7 +56,7 @@ git push'ta otomatik deploy yok, kod değişince elle `git pull` +
 5. Web sekmesinde **Code** bölümünde:
    - **Source code / Working directory**: `/home/<kullanıcı-adın>/SOMNIA`
    - **WSGI configuration file** linkine tıkla, dosyanın TAMAMINI sil ve
-     şunu yaz (kendi kullanıcı adın + seçtiğin kullanıcı adı/şifre ile):
+     şunu yaz (kendi PythonAnywhere kullanıcı adınla):
      ```python
      import sys, os
 
@@ -64,17 +64,22 @@ git push'ta otomatik deploy yok, kod değişince elle `git pull` +
      if path not in sys.path:
          sys.path.append(path)
 
-     os.environ['SOMNIA_USERNAME'] = 'kendi-kullanici-adin'
-     os.environ['SOMNIA_PASSWORD'] = 'guclu-bir-sifre'
      os.environ['SOMNIA_SECRET_KEY'] = 'rastgele-uzun-bir-metin'
 
      from src.webapp.app import app as application
      ```
-     (Bu dosya PythonAnywhere hesabında özel kalır, repoya işlenmez —
-     kimlik bilgilerini doğrudan buraya yazmak güvenlidir.)
-6. Aynı **Web** sekmesinde yeşil **Reload** butonuna bas.
-7. `https://<kullanıcı-adın>.pythonanywhere.com` adresine git — tarayıcı
-   Basic Auth soracak, 5. adımdaki kullanıcı adı/şifreyi gir.
+     (`SOMNIA_SECRET_KEY` sadece oturum çerezini imzalamak için —
+     rastgele, uzun, kimseyle paylaşmadığın bir metin olsun. Uygulama
+     artık çok kullanıcılı: sabit bir kullanıcı adı/şifre YOK, herkes
+     kendi hesabını `/register`'dan açıyor.)
+6. **PythonAnywhere → Web → Security → Password protection**'ın
+   **kapalı** olduğundan emin ol (varsa kaldır) — bu, platformun kendi
+   ayrı koruması, uygulamanın kendi giriş sistemiyle çakışır.
+7. Aynı **Web** sekmesinde yeşil **Reload** butonuna bas.
+8. `https://<kullanıcı-adın>.pythonanywhere.com/register` adresine
+   giderek ilk hesabını oluştur. Bundan sonra herkes kendi hesabını
+   `/register`'dan açıp `/login`'den giriş yapabilir — her kullanıcının
+   kayıtları birbirinden bağımsızdır (kimse başkasının verisini göremez).
 
 ### Kod güncellediğinde (redeploy)
 
@@ -114,9 +119,9 @@ gerekenler:
 - **Soğuk başlangıç** — ~15 dk istek gelmezse uykuya geçer, sıradaki
   istek 30-60 sn gecikebilir.
 - **Kurulum**: [render.com](https://render.com) → **New + → Blueprint**
-  → `ZEYDLCN/SOMNIA` seç → Render `render.yaml`'ı otomatik bulur →
-  `SOMNIA_USERNAME`/`SOMNIA_PASSWORD` gir (`SOMNIA_SECRET_KEY` otomatik
-  üretilir) → **Apply**.
+  → `ZEYDLCN/SOMNIA` seç → Render `render.yaml`'ı otomatik bulur
+  (`SOMNIA_SECRET_KEY` otomatik üretilir) → **Apply**. Uygulama çok
+  kullanıcılı — ilk açılışta `/register`'dan bir hesap oluştur.
 - Blueprint yerine tek tek kurmak istersen: **New + → Web Service** →
   Build: `pip install -r requirements-webapp.txt` → Start:
   `gunicorn -w 2 -b 0.0.0.0:$PORT src.webapp.app:app` → Plan: Free.

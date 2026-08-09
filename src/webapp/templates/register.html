@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>SOMNIA — Giriş</title>
+<title>SOMNIA — Kayıt ol</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}" />
 </head>
@@ -29,27 +29,32 @@
   {% endif %}
 
   <section class="card">
-    <h2>Giriş yap</h2>
-    <p class="card-sub">Bu form kişisel veri içerir — devam etmek için giriş yap.</p>
+    <h2>Hesap oluştur</h2>
+    <p class="card-sub">Kendi verini girmek için bir hesap aç — kayıtların sadece sana özel olur, başka kimse göremez.</p>
 
     <form method="post">
-      <input type="hidden" name="next" value="{{ next }}" />
       <div class="field-grid" style="grid-template-columns: 1fr;">
         <div class="field">
           <label for="username">Kullanıcı adı</label>
-          <input type="text" id="username" name="username" required autofocus autocomplete="username" />
+          <input type="text" id="username" name="username" required autofocus autocomplete="username" minlength="3" maxlength="32" />
+          <span class="hint">3-32 karakter; harf, rakam, "_", "." veya "-".</span>
         </div>
         <div class="field">
           <label for="password">Şifre</label>
-          <input type="password" id="password" name="password" required autocomplete="current-password" />
+          <input type="password" id="password" name="password" required autocomplete="new-password" minlength="8" />
+          <span class="hint">En az 8 karakter.</span>
+        </div>
+        <div class="field">
+          <label for="password2">Şifre (tekrar)</label>
+          <input type="password" id="password2" name="password2" required autocomplete="new-password" minlength="8" />
         </div>
       </div>
       <div class="actions" style="margin-top: 18px;">
-        <button type="submit" class="primary">Giriş yap</button>
+        <button type="submit" class="primary">Hesap oluştur</button>
       </div>
     </form>
     <p class="card-sub" style="margin-top:18px; margin-bottom:0;">
-      Hesabın yok mu? <a href="{{ url_for('register') }}">Kayıt ol</a>
+      Zaten hesabın var mı? <a href="{{ url_for('login') }}">Giriş yap</a>
     </p>
   </section>
 </main>

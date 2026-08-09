@@ -18,16 +18,14 @@
         <circle cx="22" cy="28" r="0.97" fill="var(--c-accent)"/>
         <circle cx="22" cy="51" r="1.43" fill="var(--c-accent)"/>
       </svg>
-      <span>SOMNIA</span> <span class="muted">— Günlük Veri Girişi</span>
+      <span>SOMNIA</span> <span class="muted">— Günlük Veri Girişi · {{ username }}</span>
     </div>
     <nav style="display:flex; align-items:center; gap:14px;">
       <a href="https://zeydlcn.github.io/SOMNIA/" class="nav-cta">← Sonuç raporu</a>
       <div class="count-pill mono">{{ n_entries }} kayıt</div>
-      {% if auth_enabled %}
-        <form method="post" action="{{ url_for('logout') }}" style="display:inline;">
-          <button type="submit" class="nav-cta" style="background:none; border:none; padding:6px 4px; cursor:pointer; font-family:inherit;">Çıkış yap</button>
-        </form>
-      {% endif %}
+      <form method="post" action="{{ url_for('logout') }}" style="display:inline;">
+        <button type="submit" class="nav-cta" style="background:none; border:none; padding:6px 4px; cursor:pointer; font-family:inherit;">Çıkış yap</button>
+      </form>
     </nav>
   </div>
 </header>
@@ -168,7 +166,7 @@
 
   <section class="card">
     <h2>Son kayıtlar</h2>
-    <p class="card-sub">En yeni 30 kayıt. Dışa aktarınca <code>data/real_sleep_data.csv</code> güncellenir — bu dosyayı <code>src/data/preprocessing.py</code> içindeki <code>RAW_CSV</code> yerine göstererek gerçek verinle tüm pipeline'ı (baseline'lar, Transformer, attention, causality) çalıştırabilirsin.</p>
+    <p class="card-sub">En yeni 30 kayıt. Dışa aktarınca <code>data/real_sleep_data_{{ username }}.csv</code> güncellenir — bu dosyayı <code>src/data/preprocessing.py</code> içindeki <code>RAW_CSV</code> yerine göstererek gerçek verinle tüm pipeline'ı (baseline'lar, Transformer, attention, causality) çalıştırabilirsin.</p>
 
     {% if entries %}
       <div class="table-scroll">
