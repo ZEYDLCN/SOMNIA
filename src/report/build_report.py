@@ -23,6 +23,11 @@ ROOT = Path(__file__).resolve().parents[2]
 REPORTS_DIR = ROOT / "reports"
 OUT_PATH = ROOT / "docs" / "index.html"
 
+# Bu statik rapor (GitHub Pages) ve veri girişi formu (Flask, Render) İKİ
+# AYRI deployment — bu link ikisini birbirine bağlayan tek yol. Render
+# servisinin gerçek adresiyle güncel tutulmalı (bkz. DEPLOY.md).
+WEBAPP_URL = "https://somnia-webapp.onrender.com"
+
 # Marka sembolü ("Arc Wave" S) — bkz. docs/assets/. Tema tokenlarına
 # bağlı (currentColor/var(--c-accent)) ki açık/koyu temada otomatik uyarlansın.
 LOGO_SYMBOL_PATH = "M33 11 C36 3 10 2 11 14 C11 24 33 32 33 42 C34 54 10 54 11 45"
@@ -450,7 +455,7 @@ a { color: var(--c-accent); }
   border-bottom: 1px solid var(--line);
   padding: 18px 0;
 }
-.topbar .wrap { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.topbar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .brand { display: flex; align-items: center; gap: 10px; font-family: "Iowan Old Style", Palatino, Georgia, serif; font-size: 1.15rem; letter-spacing: 0.02em; }
 .brand svg { position: relative; top: -1px; }
 .brand b { font-weight: 700; }
@@ -463,6 +468,15 @@ a { color: var(--c-accent); }
   white-space: nowrap;
 }
 .status-pill strong { color: var(--c-good); }
+.nav-cta {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--c-accent);
+  text-decoration: none;
+  padding: 6px 4px;
+  border-bottom: 1px solid transparent;
+}
+.nav-cta:hover { border-bottom-color: var(--c-accent); }
 
 /* ---------- hero ---------- */
 .hero {
@@ -492,6 +506,33 @@ a { color: var(--c-accent); }
   color: var(--muted);
   font-size: 1.05rem;
   margin: 0 0 32px;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 40px;
+}
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--c-accent);
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 12px 22px;
+  border-radius: 7px;
+  white-space: nowrap;
+}
+.btn-primary:hover { opacity: 0.92; }
+.hero-actions-note {
+  color: var(--muted);
+  font-size: 0.8rem;
+  max-width: 34ch;
 }
 
 .pipeline {
@@ -707,7 +748,10 @@ def build() -> str:
 <header class="topbar">
   <div class="wrap">
     <div class="brand">{logo_symbol_svg(22)}<span>SOMNIA</span> <span style="color:var(--muted); font-weight:400;">— Kişisel Uyku Kalitesi için Temporal Transformer</span></div>
-    <div class="status-pill"><strong>{n_done}/{len(pipeline_steps)}</strong> adım tamamlandı</div>
+    <nav style="display:flex; align-items:center; gap:14px;">
+      <a href="{WEBAPP_URL}" class="nav-cta">Veri gir →</a>
+      <div class="status-pill"><strong>{n_done}/{len(pipeline_steps)}</strong> adım tamamlandı</div>
+    </nav>
   </div>
 </header>
 
@@ -716,6 +760,10 @@ def build() -> str:
     <p class="eyebrow">Sonuç Raporu · {generated_at}</p>
     <h1 class="serif">"Benim uykumu gerçekten ne bozuyor?"</h1>
     <p class="lede">301 günlük davranışsal/çevresel sinyalden (kafein, stres, ekran süresi, oda sıcaklığı, egzersiz) bir sonraki gecenin uyku kalitesini tahmin eden bir Temporal Transformer; modelin neye baktığını (attention) ve bunun gerçekten nedensel bir kanıt olup olmadığını (Granger causality, confounder analizi) ayrı ayrı sınayan bir araştırma projesi.</p>
+    <div class="hero-actions">
+      <a href="{WEBAPP_URL}" class="btn-primary">Kendi verini gir →</a>
+      <span class="hero-actions-note">Bu sayfa salt-okunur bir rapordur — günlük veri girişi ayrı bir uygulamada (Render) çalışır.</span>
+    </div>
     <div class="pipeline">{pipeline_html}</div>
   </div>
 </section>
