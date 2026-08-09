@@ -1,0 +1,52 @@
+{
+  "feature_importance_attention": {
+    "stress_score": 0.1530994325876236,
+    "caffeine_mg": 0.03501427546143532,
+    "caffeine_hours_before_bed": 0.07065217941999435,
+    "screen_time_before_bed_min": 0.028856363147497177,
+    "room_temp_c": 0.10695178061723709,
+    "noise_level_db": 0.05844910070300102,
+    "exercise_minutes": 0.08855198323726654,
+    "last_meal_delta_hr": 0.03697451576590538,
+    "sleep_duration_min": 0.08003275096416473,
+    "sleep_quality": 0.09500687569379807,
+    "dow_sin": 0.042891524732112885,
+    "dow_cos": 0.04063637927174568,
+    "exercise_time_none": 0.03780689090490341,
+    "exercise_time_morning": 0.043376583606004715,
+    "exercise_time_afternoon": 0.021164001896977425,
+    "exercise_time_evening": 0.060535285621881485
+  },
+  "day_importance_attention": {
+    "t-7": 0.14079788327217102,
+    "t-6": 0.14021097123622894,
+    "t-5": 0.14172589778900146,
+    "t-4": 0.1435481607913971,
+    "t-3": 0.1454227715730667,
+    "t-2": 0.14527249336242676,
+    "t-1": 0.1430218368768692
+  },
+  "permutation_importance": {
+    "baseline_mae": 0.9751936323377821,
+    "per_feature": {
+      "stress_score": 0.006458016883002293,
+      "caffeine_mg": 0.005627010091145729,
+      "caffeine_hours_before_bed": -0.0068992433336046936,
+      "screen_time_before_bed_min": -0.00032115809122732484,
+      "room_temp_c": 0.031400344594319535,
+      "noise_level_db": -0.006664108445909395,
+      "exercise_minutes": -0.010955725351969476,
+      "last_meal_delta_hr": -0.005329900995890452,
+      "sleep_duration_min": 0.01547976616753457,
+      "sleep_quality": 0.01901189286973729,
+      "dow_sin": -0.0010753621419272274,
+      "dow_cos": -0.004777898746066783,
+      "exercise_time_none": 0.00480537579854311,
+      "exercise_time_morning": 0.001603097873263759,
+      "exercise_time_afternoon": 0.00037458716498477986,
+      "exercise_time_evening": 0.0062078175862629315
+    }
+  },
+  "attention_vs_permutation_spearman": 0.34411764705882353,
+  "note": "Attention ve permutation importance birbirini bağımsız şekilde doğrular ama ikisi de korelasyon/duyarlılık ölçümüdür, nedensellik kanıtı değildir. Nedensellik tartışması için docs/plan.md §5 ve adım 7'deki Granger causality analizine bakınız."
+}

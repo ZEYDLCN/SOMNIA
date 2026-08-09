@@ -16,7 +16,7 @@ Detaylı problem tanımı, hedefler, mimari ve yol haritası için:
 - [x] 3. Baseline modeller (naive, linear reg, XGBoost) → `src/models/baselines.py`, `reports/baseline_results.json`
 - [x] 4. Temporal Transformer modeli (PyTorch, sıfırdan) → `src/models/transformer.py`
 - [x] 5. Eğitim döngüsü + walk-forward validation → `src/models/train_transformer.py`
-- [ ] 6. Attention / feature importance görselleştirme
+- [x] 6. Attention / feature importance görselleştirme → `src/models/interpret.py`
 - [ ] 7. Correlation vs causation analiz modülü (ablation + Granger testi)
 - [ ] 8. Sonuç raporu
 - [ ] 9. (Opsiyonel) Gerçek veri entegrasyonu
@@ -39,6 +39,8 @@ src/
                              zaman-ekseni self-attention, sıfırdan PyTorch)
     train_transformer.py     eğitim döngüsü, walk-forward val ile early
                              stopping, baseline karşılaştırması
+    interpret.py             attention haritaları + permutation importance
+                             ile çapraz doğrulama (adım 6)
 notebooks/                  keşif / analiz defterleri
 checkpoints/                 en iyi model ağırlıkları (.pt, gitignore'da)
 reports/                    çıktı grafikleri, sonuç raporları
@@ -47,6 +49,10 @@ reports/                    çıktı grafikleri, sonuç raporları
   transformer_results.json  Transformer MAE/RMSE + config
   transformer_training_curve.png
   all_model_comparison.json tüm modellerin (baseline + transformer) kıyası
+  attention_feature_heatmap.png   gün × özellik attention ısı haritası
+  attention_day_importance.png    hangi geçmiş gün daha etkili
+  attention_vs_permutation.png    iki bağımsız yöntemin kıyası
+  interpretability_results.json   sayısal sonuçlar + Spearman korelasyonu
 ```
 
 ## Kurulum
@@ -119,5 +125,41 @@ Transformer, hem val hem test setinde tüm baseline'ları geçiyor — 301
 günlük küçük bir veri setinde bile dikkat mekanizmasının basit
 modellerin yakalayamadığı örüntüleri (gecikmeli/etkileşimli etkiler)
 öğrenebildiğine işaret ediyor. Model ayrıca özellik-ekseni ve zaman-ekseni
-attention ağırlıklarını döndürüyor (`return_attn=True`) — bunlar sıradaki
-adımda (6) görselleştirilecek.
+attention ağırlıklarını döndürüyor (`return_attn=True`) — bunlar adım
+6'da görselleştirildi (aşağıda).
+
+## Attention / feature importance görselleştirme
+
+```bash
+python -m src.models.interpret
+```
+
+Önce `train_transformer.py` çalıştırılıp `checkpoints/temporal_transformer.pt`
+üretilmiş olmalı. Bu script test seti üzerinde:
+
+1. **Özellik-ekseni attention ısı haritası** — hangi geçmiş gün, hangi
+   özelliğe ne kadar "baktığı" (`reports/attention_feature_heatmap.png`).
+   En yüksek ortalama attention: `stress_score`, ardından `room_temp_c`,
+   `sleep_quality` (otoregresif etki) ve `exercise_minutes`.
+2. **Zaman-ekseni attention** — tahmine hangi geçmiş günün ne kadar
+   katkıda bulunduğu (`reports/attention_day_importance.png`). Sonuç
+   oldukça düz (t-7..t-1 arası ~0.14 civarında) — model belirgin bir
+   "yakın geçmiş daha önemli" örüntüsü öğrenmemiş; bu, 301 günlük veri ve
+   day_persistence etkisinin (ground truth'ta 0.3) zayıf/gürültülü
+   olmasıyla tutarlı bir gözlem.
+3. **Permutation importance ile çapraz doğrulama** — her özelliği ayrı
+   ayrı karıştırıp val MAE'deki artışı ölçer (attention'dan bağımsız bir
+   yöntem). Attention-rank ile permutation-rank arasındaki Spearman
+   korelasyonu **0.34** çıktı — orta düzeyde bir tutarlılık, mükemmel
+   değil. Bu tam olarak plan.md §5'in uyardığı durum: **attention ağırlığı
+   yüksek olması, o özelliğin modelin tahmini için gerçekten kritik
+   olduğu anlamına gelmiyor.** İki yöntem kısmen örtüşüyor ama
+   birbirinin garantisi değil — dolayısıyla "modelin neye baktığı" ile
+   "gerçekten neyin önemli olduğu" ayrımını raporun merkezine koyuyoruz
+   (bkz. `reports/attention_vs_permutation.png`,
+   `reports/interpretability_results.json`).
+
+Bu bulgular, projenin akademik iddiasını (attention ≠ nedensellik kanıtı,
+hatta tek başına güvenilir bir önem ölçümü bile değil) somut veriyle
+destekliyor. Adım 7'de Granger causality ve confounder analiziyle devam
+edilecek.
