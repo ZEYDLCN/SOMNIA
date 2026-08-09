@@ -6,7 +6,7 @@ Proje iki ayrı, birbirinden bağımsız parça olarak deploy edilir; ikisi de
 | Parça | Nedir | Nereye | Neden ayrı |
 |---|---|---|---|
 | `docs/index.html` | statik sonuç raporu (dashboard) | **GitHub Pages** | JS/backend gerektirmez, sınırsız süre ücretsiz |
-| `src/webapp/` | günlük veri girişi formu (Flask + SQLite) | **Render.com free tier** | Sunucu tarafı state gerektirir, GitHub Pages statik olduğu için çalıştıramaz |
+| `src/webapp/` | günlük veri girişi formu (Flask + SQLite) | **PythonAnywhere free tier** (alternatif: Render) | Sunucu tarafı state gerektirir, GitHub Pages statik olduğu için çalıştıramaz |
 
 ---
 
@@ -30,52 +30,93 @@ Her `docs/index.html` güncellemesinde (`python -m src.report.build_report`
 
 ---
 
-## 2. Veri girişi formu → Render.com (free tier)
+## 2. Veri girişi formu → PythonAnywhere (free tier, önerilen)
 
-Bu form kişisel sağlık verisi topladığı için **HTTP Basic Auth ile
-korunmalı** — `render.yaml` bunu zaten `SOMNIA_USERNAME` /
-`SOMNIA_PASSWORD` ortam değişkenleriyle destekliyor.
-
-### ⚠️ Önce oku: free tier'ın iki sınırlaması
-
-1. **Disk kalıcı değildir.** Render'ın ücretsiz web servisi planında
-   diskler ephemeral'dır — servis yeniden başladığında (redeploy, çökme,
-   ~15 dk hareketsizlik sonrası uyku/uyanma) `data/real_entries.db`
-   **sıfırlanabilir**. Bu bir demo/kişisel-kullanım riski olarak kabul
-   edildi (bkz. konuşma geçmişi) — **düzenli aralıklarla "İndir"
-   butonuyla CSV yedeği al.**
-2. **Soğuk başlangıç.** ~15 dakika istek gelmezse servis uykuya geçer;
-   sıradaki istek 30-60 saniye gecikebilir. Kişisel/günlük kullanım için
-   sorun değil.
-
-Kabul ediyorsan devam:
+Render'ın free tier'ı build kuyruğunda uzun süre bekletebiliyor ve
+sürekli "upgrade" hatırlatması gösteriyor. **PythonAnywhere** gerçekten
+ücretsiz (kredi kartı istemiyor) ve **soğuk başlangıç/uykuya geçme
+sorunu yok** — web app'in her zaman ayakta. Tek fark: Render gibi
+git push'ta otomatik deploy yok, kod değişince elle `git pull` +
+"Reload" gerekiyor (aşağıda anlatılıyor).
 
 ### Adımlar
 
-1. [render.com](https://render.com) üzerinde ücretsiz hesap aç (GitHub ile giriş yapılabilir).
-2. **New +** → **Blueprint** → `ZEYDLCN/SOMNIA` reposunu seç.
-3. Render, repodaki `render.yaml`'ı otomatik bulur ve `somnia-webapp`
-   servisini önerir (plan: free, build: `requirements-webapp.txt` —
-   torch/xgboost YOK, sadece Flask+gunicorn, hızlı build).
-4. **Apply** etmeden önce env değişkenlerini gir:
-   - `SOMNIA_USERNAME`: kendi kullanıcı adın
-   - `SOMNIA_PASSWORD`: güçlü bir şifre
-   - `SOMNIA_SECRET_KEY`: boş bırak, Render otomatik üretir
-5. **Apply** — birkaç dakika içinde `https://somnia-webapp.onrender.com`
-   (veya Render'ın verdiği adres) üzerinde, tarayıcı Basic Auth
-   penceresi soracak şekilde canlı olur.
+1. [pythonanywhere.com](https://www.pythonanywhere.com) → **Pricing & signup** → **Create a Beginner account** (ücretsiz, kart istemiyor).
+2. Dashboard → **Consoles** → **Bash** ile yeni bir konsol aç.
+3. Repoyu klonla ve webapp bağımlılıklarını kur:
+   ```bash
+   git clone https://github.com/ZEYDLCN/SOMNIA.git
+   cd SOMNIA
+   pip install --user -r requirements-webapp.txt
+   ```
+4. Dashboard → **Web** sekmesi → **Add a new web app** → domain'i onayla
+   (`<kullanıcı-adın>.pythonanywhere.com`) → **Manual configuration**
+   (Flask şablonunu değil, "Manual configuration" seç) → **Python 3.10**
+   (veya en güncel seçenek).
+5. Web sekmesinde **Code** bölümünde:
+   - **Source code / Working directory**: `/home/<kullanıcı-adın>/SOMNIA`
+   - **WSGI configuration file** linkine tıkla, dosyanın TAMAMINI sil ve
+     şunu yaz (kendi kullanıcı adın + seçtiğin kullanıcı adı/şifre ile):
+     ```python
+     import sys, os
 
-### Manuel kurulum (Blueprint kullanmadan)
+     path = '/home/<kullanıcı-adın>/SOMNIA'
+     if path not in sys.path:
+         sys.path.append(path)
 
-Blueprint yerine tek tek de kurabilirsin: **New + → Web Service** → repo
-seç → Build Command: `pip install -r requirements-webapp.txt` → Start
-Command: `gunicorn -w 2 -b 0.0.0.0:$PORT src.webapp.app:app` → Plan:
-Free → aynı üç env değişkenini gir.
+     os.environ['SOMNIA_USERNAME'] = 'kendi-kullanici-adin'
+     os.environ['SOMNIA_PASSWORD'] = 'guclu-bir-sifre'
+     os.environ['SOMNIA_SECRET_KEY'] = 'rastgele-uzun-bir-metin'
+
+     from src.webapp.app import app as application
+     ```
+     (Bu dosya PythonAnywhere hesabında özel kalır, repoya işlenmez —
+     kimlik bilgilerini doğrudan buraya yazmak güvenlidir.)
+6. Aynı **Web** sekmesinde yeşil **Reload** butonuna bas.
+7. `https://<kullanıcı-adın>.pythonanywhere.com` adresine git — tarayıcı
+   Basic Auth soracak, 5. adımdaki kullanıcı adı/şifreyi gir.
+
+### Kod güncellediğinde (redeploy)
+
+Otomatik değil — her `docs/index.html` veya `src/webapp/` değişikliğinden
+sonra:
+```bash
+cd ~/SOMNIA && git pull
+```
+sonra **Web** sekmesinden **Reload**'a bas. 2 adım, ~10 saniye.
+
+### Sınırlamalar (free tier)
+
+- Günlük CPU saniyesi kotası var (~100 sn/gün) — kişisel/günlük tek
+  kullanıcı trafiği için fazlasıyla yeterli.
+- Disk kalıcıdır (Render'ın aksine) — `data/real_entries.db` silinmiyor,
+  yine de düzenli "İndir" ile CSV yedeği almak iyi bir alışkanlık.
+- Özel domain yok (free tier'da `pythonanywhere.com` alt alan adı
+  zorunlu) — kişisel kullanım için sorun değil.
 
 ### Neden ayrı `requirements-webapp.txt`?
 
 Ana `requirements.txt` (torch, xgboost, statsmodels...) sadece ML
 pipeline'ı içindir; webapp'in bunlardan HİÇBİRİNE ihtiyacı yok (sadece
-Flask + stdlib `sqlite3`). Onları da kurmaya çalışsaydık, free tier'ın
-build süresi/disk sınırlarına takılma riski olurdu — bu yüzden ayrı,
-hafif bir dosya kullanıyoruz.
+Flask + stdlib `sqlite3`). Bu ayrım, hem PythonAnywhere'in disk/CPU
+kotasına hem Render'ın build sınırlarına takılmamak için var.
+
+---
+
+## 2b. Alternatif: Render.com (free tier)
+
+Render'ı tercih edersen `render.yaml` hâlâ repoda ve hazır. Bilmen
+gerekenler:
+
+- **Disk kalıcı değildir** — servis yeniden başladığında
+  (redeploy/çökme/~15 dk hareketsizlik sonrası uyanma)
+  `data/real_entries.db` sıfırlanabilir; düzenli "İndir" ile yedek al.
+- **Soğuk başlangıç** — ~15 dk istek gelmezse uykuya geçer, sıradaki
+  istek 30-60 sn gecikebilir.
+- **Kurulum**: [render.com](https://render.com) → **New + → Blueprint**
+  → `ZEYDLCN/SOMNIA` seç → Render `render.yaml`'ı otomatik bulur →
+  `SOMNIA_USERNAME`/`SOMNIA_PASSWORD` gir (`SOMNIA_SECRET_KEY` otomatik
+  üretilir) → **Apply**.
+- Blueprint yerine tek tek kurmak istersen: **New + → Web Service** →
+  Build: `pip install -r requirements-webapp.txt` → Start:
+  `gunicorn -w 2 -b 0.0.0.0:$PORT src.webapp.app:app` → Plan: Free.

@@ -23,9 +23,11 @@ ROOT = Path(__file__).resolve().parents[2]
 REPORTS_DIR = ROOT / "reports"
 OUT_PATH = ROOT / "docs" / "index.html"
 
-# Bu statik rapor (GitHub Pages) ve veri girişi formu (Flask, Render) İKİ
-# AYRI deployment — bu link ikisini birbirine bağlayan tek yol. Render
-# servisinin gerçek adresiyle güncel tutulmalı (bkz. DEPLOY.md).
+# Bu statik rapor (GitHub Pages) ve veri girişi formu (Flask, ayrı bir
+# platformda barındırılıyor — bkz. DEPLOY.md) İKİ AYRI deployment; bu
+# link ikisini birbirine bağlayan tek yol. TODO: PythonAnywhere'e
+# taşındığında gerçek adresle (https://<kullanıcı-adın>.pythonanywhere.com)
+# güncelle.
 WEBAPP_URL = "https://somnia-webapp.onrender.com"
 
 # Marka sembolü ("Arc Wave" S) — bkz. docs/assets/. Tema tokenlarına

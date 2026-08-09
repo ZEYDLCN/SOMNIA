@@ -303,8 +303,7 @@ sistemini paylaşır.
 ## Deployment (ücretsiz)
 
 - **Sonuç raporu** (`docs/index.html`) → GitHub Pages, `.github/workflows/deploy-pages.yml` ile otomatik.
-- **Veri girişi formu** (`src/webapp/`) → Render.com free tier, `render.yaml` ile hazır (Basic Auth zorunlu).
+- **Veri girişi formu** (`src/webapp/`) → PythonAnywhere free tier (önerilen — soğuk başlangıç yok, kart istemiyor). Alternatif: Render.com, `render.yaml` ile hazır (Basic Auth her ikisinde de zorunlu).
 
-Adım adım kurulum, free tier sınırlamaları (disk kalıcılığı, soğuk
-başlangıç) ve neden ayrı bir `requirements-webapp.txt` kullanıldığı için:
-**[`DEPLOY.md`](DEPLOY.md)**.
+Adım adım kurulum, free tier sınırlamaları ve neden ayrı bir
+`requirements-webapp.txt` kullanıldığı için: **[`DEPLOY.md`](DEPLOY.md)**.
