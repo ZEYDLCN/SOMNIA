@@ -1,0 +1,26 @@
+# Render Blueprint — SOMNIA günlük veri girişi formu (src/webapp/)
+#
+# Kullanım: render.com üzerinde "New +" → "Blueprint" → bu repoyu seç.
+# Render bu dosyayı otomatik bulur ve servisi kurar (ücretsiz plan).
+# Detaylı adımlar için DEPLOY.md.
+#
+# ÖNEMLİ: free plan'da disk KALICI DEĞİLDİR — servis yeniden başladığında
+# data/real_entries.db sıfırlanabilir. Bu SADECE formu (Flask+SQLite) çalıştırır;
+# ML pipeline (torch/xgboost) burada YOK — requirements-webapp.txt kullanılır.
+
+services:
+  - type: web
+    name: somnia-webapp
+    runtime: python
+    plan: free
+    branch: main
+    buildCommand: pip install -r requirements-webapp.txt
+    startCommand: gunicorn -w 2 -b 0.0.0.0:$PORT src.webapp.app:app
+    healthCheckPath: /
+    envVars:
+      - key: SOMNIA_USERNAME
+        sync: false # Render dashboard'undan elle gir — repoya yazılmaz
+      - key: SOMNIA_PASSWORD
+        sync: false # Render dashboard'undan elle gir — repoya yazılmaz
+      - key: SOMNIA_SECRET_KEY
+        generateValue: true

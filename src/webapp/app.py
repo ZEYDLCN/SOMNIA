@@ -1,30 +1,70 @@
 """
 Günlük veri girişi web formu — SOMNIA (adım 9)
 
-Kullanım:
+Lokal kullanım:
     python -m src.webapp.app
     -> http://127.0.0.1:5000
 
-Bu, kişisel/lokal kullanım için tasarlanmış küçük bir Flask uygulamasıdır
-(kimlik doğrulama YOK — sadece localhost'ta veya güvenilir bir ağda
-çalıştırılmalı, internete açık şekilde deploy edilmemeli). Girilen veri
-`data/real_entries.db` (SQLite) içinde saklanır; "Dışa Aktar" ile
-`data/real_sleep_data.csv`'ye — sentetik veriyle birebir aynı şemada —
-export edilir, böylece `src/data/preprocessing.py` ve devamındaki tüm
-pipeline (baseline'lar, Transformer, attention, causality) gerçek veri
-üzerinde de hiçbir kod değişikliği gerektirmeden çalışabilir.
+Uzak/deploy edilmiş kullanım (ör. Render free tier — bkz. DEPLOY.md):
+    SOMNIA_USERNAME, SOMNIA_PASSWORD ortam değişkenleri set edildiğinde
+    tüm route'lar HTTP Basic Auth ile korunur. Bu değişkenler set
+    edilmezse (varsayılan lokal geliştirme durumu) kimlik doğrulama
+    devre dışı kalır — bilerek: localhost'ta ekstra adım istemiyoruz.
+
+    ÖNEMLİ: Render'ın ücretsiz planında disk KALICI DEĞİLDİR — servis
+    yeniden başladığında/redeploy olduğunda `data/real_entries.db`
+    SIFIRLANABİLİR. Girdiğin veriyi düzenli aralıklarla "İndir" ile
+    yedekle. Detaylar için DEPLOY.md.
+
+Girilen veri `data/real_entries.db` (SQLite) içinde saklanır; "Dışa
+Aktar" ile `data/real_sleep_data.csv`'ye — sentetik veriyle birebir aynı
+şemada — export edilir, böylece `src/data/preprocessing.py` ve
+devamındaki tüm pipeline (baseline'lar, Transformer, attention,
+causality) gerçek veri üzerinde de hiçbir kod değişikliği gerektirmeden
+çalışabilir.
 """
 
 from __future__ import annotations
 
+import hmac
+import os
 from datetime import date as date_cls
 
-from flask import Flask, flash, redirect, render_template, request, send_file, url_for
+from flask import Flask, Response, flash, redirect, render_template, request, send_file, url_for
 
 from src.webapp import db
 
 app = Flask(__name__)
-app.secret_key = "somnia-local-dev-only"  # yalnızca flash mesajları için; kimlik doğrulama değil
+app.secret_key = os.environ.get("SOMNIA_SECRET_KEY", "somnia-local-dev-only")
+
+
+def _basic_auth_configured() -> bool:
+    return bool(os.environ.get("SOMNIA_USERNAME") and os.environ.get("SOMNIA_PASSWORD"))
+
+
+@app.before_request
+def require_auth_if_configured():
+    """SOMNIA_USERNAME/SOMNIA_PASSWORD set edilmişse (deploy senaryosu)
+    her isteği HTTP Basic Auth ile korur. Lokal kullanımda (env değişkenleri
+    yoksa) hiçbir şey değişmez — no-op."""
+    if not _basic_auth_configured():
+        return None
+
+    auth = request.authorization
+    expected_user = os.environ["SOMNIA_USERNAME"]
+    expected_pass = os.environ["SOMNIA_PASSWORD"]
+    valid = (
+        auth is not None
+        and hmac.compare_digest(auth.username or "", expected_user)
+        and hmac.compare_digest(auth.password or "", expected_pass)
+    )
+    if not valid:
+        return Response(
+            "Kimlik doğrulama gerekli.",
+            401,
+            {"WWW-Authenticate": 'Basic realm="SOMNIA"'},
+        )
+    return None
 
 
 def _validate(form: dict) -> tuple[dict, list[str]]:

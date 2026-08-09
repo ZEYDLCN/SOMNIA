@@ -93,3 +93,40 @@ def test_export_matches_synthetic_csv_schema(client):
         synthetic_header = next(csv.reader(f))
 
     assert exported_header == synthetic_header
+
+
+def test_no_auth_required_when_env_vars_unset(client, monkeypatch):
+    monkeypatch.delenv("SOMNIA_USERNAME", raising=False)
+    monkeypatch.delenv("SOMNIA_PASSWORD", raising=False)
+    c, _ = client
+    resp = c.get("/")
+    assert resp.status_code == 200
+
+
+def test_basic_auth_enforced_when_env_vars_set(tmp_path, monkeypatch):
+    from src.webapp import db as db_module
+
+    monkeypatch.setattr(db_module, "DB_PATH", tmp_path / "auth_entries.db")
+    monkeypatch.setattr(db_module, "EXPORT_CSV_PATH", tmp_path / "auth_export.csv")
+    db_module.init_db()
+
+    monkeypatch.setenv("SOMNIA_USERNAME", "zeyd")
+    monkeypatch.setenv("SOMNIA_PASSWORD", "s3cret")
+
+    from src.webapp import app as app_module
+
+    importlib.reload(app_module)
+    app_module.app.config.update(TESTING=True)
+    with app_module.app.test_client() as c:
+        resp = c.get("/")
+        assert resp.status_code == 401
+
+        import base64
+
+        bad = base64.b64encode(b"zeyd:wrong").decode()
+        resp = c.get("/", headers={"Authorization": f"Basic {bad}"})
+        assert resp.status_code == 401
+
+        good = base64.b64encode(b"zeyd:s3cret").decode()
+        resp = c.get("/", headers={"Authorization": f"Basic {good}"})
+        assert resp.status_code == 200

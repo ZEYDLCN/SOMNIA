@@ -1,0 +1,7 @@
+# Sadece src/webapp/ (günlük veri girişi formu) için gerekli bağımlılıklar.
+# Ana requirements.txt (torch, xgboost, vb.) ML pipeline'ı içindir ve
+# webapp'in ÇALIŞMASI İÇİN GEREKMEZ — bu ayrı/hafif dosya, Render gibi
+# ücretsiz platformların sınırlı build süresi/diskiyle uyumlu, hızlı bir
+# deploy sağlamak için var (bkz. DEPLOY.md).
+flask>=3.0
+gunicorn>=21.2

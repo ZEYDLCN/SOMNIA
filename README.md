@@ -289,5 +289,15 @@ sistemini paylaşır.
   verinle çalıştırabilirsin.
 - Kişisel sağlık verisi içerdiğinden `data/real_entries.db` ve
   `data/real_sleep_data.csv` `.gitignore`'dadır — repoya işlenmez.
-- **Kimlik doğrulama yoktur** — yalnızca lokal/kişisel kullanım
-  içindir, herkese açık bir sunucuda çalıştırılmamalıdır.
+- Lokalde kimlik doğrulama yoktur. `SOMNIA_USERNAME`/`SOMNIA_PASSWORD`
+  ortam değişkenleri set edilirse (deploy senaryosu) tüm route'lar HTTP
+  Basic Auth ile korunur.
+
+## Deployment (ücretsiz)
+
+- **Sonuç raporu** (`docs/index.html`) → GitHub Pages, `.github/workflows/deploy-pages.yml` ile otomatik.
+- **Veri girişi formu** (`src/webapp/`) → Render.com free tier, `render.yaml` ile hazır (Basic Auth zorunlu).
+
+Adım adım kurulum, free tier sınırlamaları (disk kalıcılığı, soğuk
+başlangıç) ve neden ayrı bir `requirements-webapp.txt` kullanıldığı için:
+**[`DEPLOY.md`](DEPLOY.md)**.
