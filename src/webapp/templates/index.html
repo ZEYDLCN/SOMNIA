@@ -5,12 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SOMNIA — Günlük Veri Girişi</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}" />
 </head>
 <body>
 
 <header class="topbar">
   <div class="wrap">
-    <div class="brand">SOMNIA <span class="muted">— Günlük Veri Girişi</span></div>
+    <div class="brand">
+      <svg viewBox="0 0 44 56" width="17.29" height="22" fill="none" style="overflow:visible; flex-shrink:0; position:relative; top:-1px;" aria-hidden="true">
+        <path d="M33 11 C36 3 10 2 11 14 C11 24 33 32 33 42 C34 54 10 54 11 45" stroke="var(--ink)" stroke-width="1.62" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="22" cy="5" r="1.43" fill="var(--c-accent)"/>
+        <circle cx="22" cy="28" r="0.97" fill="var(--c-accent)"/>
+        <circle cx="22" cy="51" r="1.43" fill="var(--c-accent)"/>
+      </svg>
+      <span>SOMNIA</span> <span class="muted">— Günlük Veri Girişi</span>
+    </div>
     <div class="count-pill mono">{{ n_entries }} kayıt</div>
   </div>
 </header>

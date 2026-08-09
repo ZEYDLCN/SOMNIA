@@ -23,6 +23,26 @@ ROOT = Path(__file__).resolve().parents[2]
 REPORTS_DIR = ROOT / "reports"
 OUT_PATH = ROOT / "docs" / "index.html"
 
+# Marka sembolü ("Arc Wave" S) — bkz. docs/assets/. Tema tokenlarına
+# bağlı (currentColor/var(--c-accent)) ki açık/koyu temada otomatik uyarlansın.
+LOGO_SYMBOL_PATH = "M33 11 C36 3 10 2 11 14 C11 24 33 32 33 42 C34 54 10 54 11 45"
+LOGO_SYMBOL_NODES = [(22, 5, 1.0), (22, 28, 0.68), (22, 51, 1.0)]
+
+
+def logo_symbol_svg(h: float) -> str:
+    sw = max(1.5, h * 0.058)
+    w = round(h * 44 / 56, 2)
+    circles = "\n".join(
+        f'<circle cx="{cx}" cy="{cy}" r="{sw * 0.88 * mult:.2f}" fill="var(--c-accent)"/>'
+        for cx, cy, mult in LOGO_SYMBOL_NODES
+    )
+    return (
+        f'<svg viewBox="0 0 44 56" width="{w}" height="{h}" fill="none" '
+        f'style="overflow:visible; flex-shrink:0;" aria-hidden="true">'
+        f'<path d="{LOGO_SYMBOL_PATH}" stroke="var(--ink)" stroke-width="{sw:.2f}" '
+        f'stroke-linecap="round" stroke-linejoin="round"/>{circles}</svg>'
+    )
+
 MODEL_LABELS = {
     "naive": "Naive",
     "linear_regression": "Linear Regression",
@@ -431,7 +451,8 @@ a { color: var(--c-accent); }
   padding: 18px 0;
 }
 .topbar .wrap { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.brand { font-family: "Iowan Old Style", Palatino, Georgia, serif; font-size: 1.15rem; letter-spacing: 0.02em; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: "Iowan Old Style", Palatino, Georgia, serif; font-size: 1.15rem; letter-spacing: 0.02em; }
+.brand svg { position: relative; top: -1px; }
 .brand b { font-weight: 700; }
 .status-pill {
   font-size: 0.78rem;
@@ -678,13 +699,14 @@ def build() -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SOMNIA — Sonuç Raporu</title>
 <meta name="description" content="Kişisel Uyku Kalitesi için Temporal Transformer: model karşılaştırması, attention yorumlanabilirliği ve correlation-vs-causation analizi." />
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
 <style>{CSS}</style>
 </head>
 <body>
 
 <header class="topbar">
   <div class="wrap">
-    <div class="brand">SOMNIA <span style="color:var(--muted); font-weight:400;">— Kişisel Uyku Kalitesi için Temporal Transformer</span></div>
+    <div class="brand">{logo_symbol_svg(22)}<span>SOMNIA</span> <span style="color:var(--muted); font-weight:400;">— Kişisel Uyku Kalitesi için Temporal Transformer</span></div>
     <div class="status-pill"><strong>{n_done}/{len(pipeline_steps)}</strong> adım tamamlandı</div>
   </div>
 </header>

@@ -1,3 +1,5 @@
+<img src="docs/assets/somnia-logo-horizontal.svg" alt="SOMNIA" width="220" />
+
 # SOMNIA — Kişisel Uyku Kalitesi için Temporal Transformer
 
 Günlük davranışsal/çevresel sinyalleri (kafein, ekran süresi, oda sıcaklığı,
@@ -37,6 +39,11 @@ data/                       ham ve üretilmiş veri
 docs/
   plan.md                   proje planı
   index.html                üretilen sonuç raporu (dashboard)
+  favicon.svg               marka sembolü (favicon)
+  assets/                   logo dosyaları (Figma'dan: "Arc Wave" S sembolü)
+    somnia-logo-horizontal.svg   sembol + wordmark (README, paylaşım)
+    somnia-icon.svg              uygulama ikonu (yuvarlatılmış kare)
+    somnia-symbol-light-bg.svg / -dark-bg.svg   tek başına sembol
 src/
   data/
     preprocessing.py        temizleme, feature engineering, windowing, split

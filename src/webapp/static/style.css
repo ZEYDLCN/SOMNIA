@@ -61,7 +61,7 @@ a { color: var(--c-accent); }
 
 .topbar { border-bottom: 1px solid var(--line); padding: 16px 0; }
 .topbar .wrap { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.brand { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; font-size: 1.1rem; }
+.brand { display: flex; align-items: center; gap: 9px; font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; font-size: 1.1rem; }
 .brand .muted { color: var(--muted); font-weight: 400; }
 .count-pill { font-size: 0.78rem; color: var(--muted); border: 1px solid var(--line-strong); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
 
