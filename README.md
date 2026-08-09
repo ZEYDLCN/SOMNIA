@@ -9,6 +9,12 @@ Transformer projesi.
 Detaylı problem tanımı, hedefler, mimari ve yol haritası için:
 [`docs/plan.md`](docs/plan.md)
 
+**Görsel sonuç raporu (dashboard):** [`docs/index.html`](docs/index.html) —
+tarayıcıda açarak veya GitHub Pages'i `/docs` klasöründen etkinleştirerek
+görüntüleyebilirsin. Tüm sayılar `reports/*.json` dosyalarından
+üretilir, koda gömülü değildir (`python -m src.report.build_report` ile
+yeniden üretilir).
+
 ## Durum
 
 - [x] 1. Sentetik veri üreticisi (gömülü ground-truth ilişkilerle) → `data/synthetic_sleep_data.csv`, `data/ground_truth.json`
@@ -18,7 +24,7 @@ Detaylı problem tanımı, hedefler, mimari ve yol haritası için:
 - [x] 5. Eğitim döngüsü + walk-forward validation → `src/models/train_transformer.py`
 - [x] 6. Attention / feature importance görselleştirme → `src/models/interpret.py`
 - [x] 7. Correlation vs causation analiz modülü (confounder + Granger + öz-deney) → `src/analysis/causality.py`
-- [ ] 8. Sonuç raporu
+- [x] 8. Sonuç raporu (şık, veri-güdümlü HTML dashboard) → `docs/index.html`
 - [ ] 9. (Opsiyonel) Gerçek veri entegrasyonu
 
 ## Proje yapısı
@@ -30,6 +36,7 @@ data/                       ham ve üretilmiş veri
                              (SADECE doğrulama için — modele verilmez)
 docs/
   plan.md                   proje planı
+  index.html                üretilen sonuç raporu (dashboard)
 src/
   data/
     preprocessing.py        temizleme, feature engineering, windowing, split
@@ -44,6 +51,9 @@ src/
   analysis/
     causality.py             confounder analizi, Granger causality testleri,
                              öz-deney (self-experiment) önerisi (adım 7)
+  report/
+    build_report.py          reports/*.json'dan tek sayfalık HTML dashboard
+                             üretir (adım 8) → docs/index.html
 notebooks/                  keşif / analiz defterleri
 checkpoints/                 en iyi model ağırlıkları (.pt, gitignore'da)
 reports/                    çıktı grafikleri, sonuç raporları
@@ -230,3 +240,23 @@ sınırlamaları (n=1, placebo etkisi, kısa süre).
 listelendi): 301 günlük tek-kişilik veri, öz-bildirim gürültüsü,
 ölçülmeyen confounder'lar, durağanlık kontrolü yapılmadı, çoklu
 karşılaştırma düzeltmesi uygulanmadı (8 özellik × 5 lag test edildi).
+
+## Sonuç raporu (dashboard) üretme
+
+```bash
+python -m src.report.build_report
+```
+
+Yukarıdaki tüm bulguları (model kıyası, attention haritaları,
+confounder/Granger analizi, öz-deney önerisi) `reports/*.json`
+dosyalarından okuyup **tek sayfalık, kendi kendine yeten bir HTML
+dashboard**'a dönüştürür → `docs/index.html`. Grafikler harici kütüphane
+kullanılmadan inline SVG olarak üretilir; sayfa hem açık hem koyu temayı
+destekler ve internet bağlantısı olmadan tarayıcıda doğrudan açılabilir.
+İstersen `/docs` klasöründen GitHub Pages'i etkinleştirip canlı olarak da
+yayınlayabilirsin.
+
+Rapor adım 4-7'nin tüm modellerini, adım 6'daki attention/permutation
+importance çapraz doğrulamasını ve adım 7'deki confounder + Granger
+causality bulgularını tek ekranda özetler — sonuçlar koda gömülü değildir,
+pipeline'lar tekrar çalıştırıldığında rapor da güncellenir.
