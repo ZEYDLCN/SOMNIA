@@ -1,0 +1,21 @@
+{
+  "config": {
+    "n_features": 16,
+    "window_size": 7,
+    "d_model": 32,
+    "n_heads": 4,
+    "n_temporal_layers": 2,
+    "d_ff": 64,
+    "dropout": 0.2
+  },
+  "n_parameters": 27393,
+  "epochs_trained": 110,
+  "val": {
+    "mae": 0.900602400302887,
+    "rmse": 1.1398512125015259
+  },
+  "test": {
+    "mae": 0.975193440914154,
+    "rmse": 1.3219060897827148
+  }
+}

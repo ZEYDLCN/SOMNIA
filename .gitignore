@@ -4,6 +4,7 @@ __pycache__/
 venv/
 .pytest_cache/
 data/processed/
+checkpoints/
 .ipynb_checkpoints/
 *.egg-info/
 .DS_Store
