@@ -25,7 +25,7 @@ yeniden üretilir).
 - [x] 6. Attention / feature importance görselleştirme → `src/models/interpret.py`
 - [x] 7. Correlation vs causation analiz modülü (confounder + Granger + öz-deney) → `src/analysis/causality.py`
 - [x] 8. Sonuç raporu (şık, veri-güdümlü HTML dashboard) → `docs/index.html`
-- [ ] 9. (Opsiyonel) Gerçek veri entegrasyonu
+- [x] 9. Gerçek veri girişi — web formu (Flask + SQLite) → `src/webapp/`
 
 ## Proje yapısı
 
@@ -54,6 +54,10 @@ src/
   report/
     build_report.py          reports/*.json'dan tek sayfalık HTML dashboard
                              üretir (adım 8) → docs/index.html
+  webapp/
+    app.py, db.py             günlük veri girişi için lokal Flask uygulaması
+                             (adım 9) → data/real_sleep_data.csv
+    templates/, static/       form arayüzü (dashboard ile aynı tasarım dili)
 notebooks/                  keşif / analiz defterleri
 checkpoints/                 en iyi model ağırlıkları (.pt, gitignore'da)
 reports/                    çıktı grafikleri, sonuç raporları
@@ -260,3 +264,30 @@ Rapor adım 4-7'nin tüm modellerini, adım 6'daki attention/permutation
 importance çapraz doğrulamasını ve adım 7'deki confounder + Granger
 causality bulgularını tek ekranda özetler — sonuçlar koda gömülü değildir,
 pipeline'lar tekrar çalıştırıldığında rapor da güncellenir.
+
+## Gerçek veri girişi (web formu)
+
+```bash
+python -m src.webapp.app
+# -> http://127.0.0.1:5000
+```
+
+Sentetik veriyle sınırlı kalmak istemeyenler için: kendi günlük verini
+(uyku süresi/kalitesi, stres, kafein, ekran süresi, egzersiz, oda
+sıcaklığı, gürültü, son yemek) girebileceğin küçük bir Flask + SQLite
+uygulaması. Tasarımı `docs/index.html` ile aynı renk/tipografi
+sistemini paylaşır.
+
+- Kayıtlar `data/real_entries.db` (SQLite) içinde tutulur; **aynı tarihi
+  tekrar girersen önceki kayıt güncellenir (upsert)**, düzenleme ve
+  silme desteklenir.
+- "CSV'ye dışa aktar" ile `data/real_sleep_data.csv` üretilir —
+  `data/synthetic_sleep_data.csv` ile **birebir aynı şemada**, yani
+  `src/data/preprocessing.py` içindeki `RAW_CSV`'yi bu dosyaya
+  çevirerek baseline'lar, Transformer, attention ve causality
+  pipeline'larının tamamını hiçbir kod değişikliği yapmadan gerçek
+  verinle çalıştırabilirsin.
+- Kişisel sağlık verisi içerdiğinden `data/real_entries.db` ve
+  `data/real_sleep_data.csv` `.gitignore`'dadır — repoya işlenmez.
+- **Kimlik doğrulama yoktur** — yalnızca lokal/kişisel kullanım
+  içindir, herkese açık bir sunucuda çalıştırılmamalıdır.

@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SOMNIA — Günlük Veri Girişi</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand">SOMNIA <span class="muted">— Günlük Veri Girişi</span></div>
+    <div class="count-pill mono">{{ n_entries }} kayıt</div>
+  </div>
+</header>
+
+<main class="wrap">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, msg in messages %}
+        <div class="flash {{ category }}">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <section class="card">
+    <h2>{{ 'Kaydı düzenle' if prefill else 'Bugünü kaydet' }}</h2>
+    <p class="card-sub">
+      {% if prefill %}
+        {{ prefill.date }} tarihli kaydı düzenliyorsun. Kaydet'e bastığında üzerine yazılır.
+      {% else %}
+        Alanları doldurup kaydet — aynı tarihi tekrar girersen önceki kayıt güncellenir.
+      {% endif %}
+    </p>
+
+    <form method="post" action="{{ url_for('save_entry') }}">
+      <fieldset>
+        <legend>Bu gece</legend>
+        <div class="field-grid">
+          <div class="field">
+            <label for="date">{{ fields.date.label }}</label>
+            <input type="date" id="date" name="date" required
+                   value="{{ prefill.date if prefill else today }}" />
+          </div>
+          <div class="field">
+            <label for="sleep_duration_min">{{ fields.sleep_duration_min.label }}</label>
+            <input type="number" id="sleep_duration_min" name="sleep_duration_min" required
+                   min="{{ fields.sleep_duration_min.min }}" max="{{ fields.sleep_duration_min.max }}"
+                   step="{{ fields.sleep_duration_min.step }}"
+                   value="{{ prefill.sleep_duration_min if prefill else '' }}" />
+            <span class="hint">{{ fields.sleep_duration_min.help }}</span>
+          </div>
+          <div class="field">
+            <label for="sleep_quality">{{ fields.sleep_quality.label }}</label>
+            <input type="number" id="sleep_quality" name="sleep_quality" required
+                   min="{{ fields.sleep_quality.min }}" max="{{ fields.sleep_quality.max }}"
+                   step="{{ fields.sleep_quality.step }}"
+                   value="{{ prefill.sleep_quality if prefill else '' }}" />
+            <span class="hint">{{ fields.sleep_quality.help }}</span>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Bugünkü davranışlar</legend>
+        <div class="field-grid">
+          <div class="field">
+            <label for="stress_score">{{ fields.stress_score.label }}</label>
+            <input type="number" id="stress_score" name="stress_score" required
+                   min="{{ fields.stress_score.min }}" max="{{ fields.stress_score.max }}"
+                   step="{{ fields.stress_score.step }}"
+                   value="{{ prefill.stress_score if prefill else '' }}" />
+          </div>
+          <div class="field">
+            <label for="caffeine_mg">{{ fields.caffeine_mg.label }}</label>
+            <input type="number" id="caffeine_mg" name="caffeine_mg" required
+                   min="{{ fields.caffeine_mg.min }}" max="{{ fields.caffeine_mg.max }}"
+                   step="{{ fields.caffeine_mg.step }}"
+                   value="{{ prefill.caffeine_mg if prefill else '' }}" />
+            <span class="hint">{{ fields.caffeine_mg.help }}</span>
+          </div>
+          <div class="field">
+            <label for="caffeine_hours_before_bed">{{ fields.caffeine_hours_before_bed.label }}</label>
+            <input type="number" id="caffeine_hours_before_bed" name="caffeine_hours_before_bed" required
+                   min="{{ fields.caffeine_hours_before_bed.min }}" max="{{ fields.caffeine_hours_before_bed.max }}"
+                   step="{{ fields.caffeine_hours_before_bed.step }}"
+                   value="{{ prefill.caffeine_hours_before_bed if prefill else '' }}" />
+          </div>
+          <div class="field">
+            <label for="screen_time_before_bed_min">{{ fields.screen_time_before_bed_min.label }}</label>
+            <input type="number" id="screen_time_before_bed_min" name="screen_time_before_bed_min" required
+                   min="{{ fields.screen_time_before_bed_min.min }}" max="{{ fields.screen_time_before_bed_min.max }}"
+                   step="{{ fields.screen_time_before_bed_min.step }}"
+                   value="{{ prefill.screen_time_before_bed_min if prefill else '' }}" />
+          </div>
+          <div class="field">
+            <label for="exercise_minutes">{{ fields.exercise_minutes.label }}</label>
+            <input type="number" id="exercise_minutes" name="exercise_minutes" required
+                   min="{{ fields.exercise_minutes.min }}" max="{{ fields.exercise_minutes.max }}"
+                   step="{{ fields.exercise_minutes.step }}"
+                   value="{{ prefill.exercise_minutes if prefill else 0 }}" />
+          </div>
+          <div class="field">
+            <label for="exercise_time_of_day">{{ fields.exercise_time_of_day.label }}</label>
+            <select id="exercise_time_of_day" name="exercise_time_of_day">
+              {% for choice in exercise_choices %}
+                <option value="{{ choice }}" {{ 'selected' if prefill and prefill.exercise_time_of_day == choice else '' }}>{{ choice }}</option>
+              {% endfor %}
+            </select>
+            <span class="hint">{{ fields.exercise_time_of_day.help }}</span>
+          </div>
+          <div class="field">
+            <label for="last_meal_delta_hr">{{ fields.last_meal_delta_hr.label }}</label>
+            <input type="number" id="last_meal_delta_hr" name="last_meal_delta_hr" required
+                   min="{{ fields.last_meal_delta_hr.min }}" max="{{ fields.last_meal_delta_hr.max }}"
+                   step="{{ fields.last_meal_delta_hr.step }}"
+                   value="{{ prefill.last_meal_delta_hr if prefill else '' }}" />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Ortam</legend>
+        <div class="field-grid">
+          <div class="field">
+            <label for="room_temp_c">{{ fields.room_temp_c.label }}</label>
+            <input type="number" id="room_temp_c" name="room_temp_c" required
+                   min="{{ fields.room_temp_c.min }}" max="{{ fields.room_temp_c.max }}"
+                   step="{{ fields.room_temp_c.step }}"
+                   value="{{ prefill.room_temp_c if prefill else '' }}" />
+          </div>
+          <div class="field">
+            <label for="noise_level_db">{{ fields.noise_level_db.label }}</label>
+            <input type="number" id="noise_level_db" name="noise_level_db" required
+                   min="{{ fields.noise_level_db.min }}" max="{{ fields.noise_level_db.max }}"
+                   step="{{ fields.noise_level_db.step }}"
+                   value="{{ prefill.noise_level_db if prefill else '' }}" />
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="actions">
+        <button type="submit" class="primary">Kaydet</button>
+        {% if prefill %}
+          <a class="btn ghost" href="{{ url_for('index') }}">İptal</a>
+        {% endif %}
+      </div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Son kayıtlar</h2>
+    <p class="card-sub">En yeni 30 kayıt. Dışa aktarınca <code>data/real_sleep_data.csv</code> güncellenir — bu dosyayı <code>src/data/preprocessing.py</code> içindeki <code>RAW_CSV</code> yerine göstererek gerçek verinle tüm pipeline'ı (baseline'lar, Transformer, attention, causality) çalıştırabilirsin.</p>
+
+    {% if entries %}
+      <div class="table-scroll">
+        <table class="data">
+          <thead>
+            <tr>
+              <th>Tarih</th><th class="num">Uyku (dk)</th><th class="num">Kalite</th>
+              <th class="num">Stres</th><th class="num">Kafein (mg)</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for e in entries %}
+              <tr>
+                <td>{{ e.date }}</td>
+                <td class="num">{{ e.sleep_duration_min }}</td>
+                <td class="num">{{ e.sleep_quality }}</td>
+                <td class="num">{{ e.stress_score }}</td>
+                <td class="num">{{ e.caffeine_mg }}</td>
+                <td style="white-space:nowrap;">
+                  <a class="btn ghost" style="padding:4px 10px; font-size:0.78rem;" href="{{ url_for('index', edit=e.date) }}">Düzenle</a>
+                  <form method="post" action="{{ url_for('delete_entry', entry_date=e.date) }}" style="display:inline;" onsubmit="return confirm('{{ e.date }} kaydı silinsin mi?');">
+                    <button type="submit" class="danger">Sil</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="empty">Henüz kayıt yok — yukarıdaki formu doldurarak başla.</p>
+    {% endif %}
+
+    <div class="actions" style="margin-top:18px;">
+      <form method="post" action="{{ url_for('export') }}">
+        <button type="submit" class="ghost">CSV'ye dışa aktar</button>
+      </form>
+      <a class="btn ghost" href="{{ url_for('download_export') }}">İndir</a>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  Bu form yalnızca lokal/kişisel kullanım içindir (kimlik doğrulama yok) — herkese açık bir sunucuda çalıştırma.
+</footer>
+
+</body>
+</html>

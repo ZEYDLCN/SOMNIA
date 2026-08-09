@@ -636,8 +636,9 @@ def build() -> str:
         ("6", "Attention", True),
         ("7", "Nedensellik", True),
         ("8", "Rapor", True),
-        ("9", "Gerçek veri", False),
+        ("9", "Gerçek veri", True),
     ]
+    n_done = sum(1 for _, _, done in pipeline_steps if done)
     pipeline_html = "".join(
         f'<div class="pipeline-step {"done" if done else "pending"}">'
         f'<div class="num">{"✓" if done else "○"} {n}</div>'
@@ -684,7 +685,7 @@ def build() -> str:
 <header class="topbar">
   <div class="wrap">
     <div class="brand">SOMNIA <span style="color:var(--muted); font-weight:400;">— Kişisel Uyku Kalitesi için Temporal Transformer</span></div>
-    <div class="status-pill"><strong>8/9</strong> adım tamamlandı</div>
+    <div class="status-pill"><strong>{n_done}/{len(pipeline_steps)}</strong> adım tamamlandı</div>
   </div>
 </header>
 
@@ -828,6 +829,10 @@ def build() -> str:
         <li><strong>Karşılaştır:</strong> İki haftanın ortalama sleep_quality'sini Welch t-test ile kıyasla — <code>src/analysis/causality.py</code> içindeki <code>caffeine_timing_natural_experiment</code> fonksiyonu bunu otomatik yapar.</li>
       </ol>
       <p class="card-sub">Tam öneri ve sınırlamalar: <a href="../reports/self_experiment_recommendation.md">reports/self_experiment_recommendation.md</a></p>
+    </div>
+    <div class="card" style="margin-top:20px;">
+      <h3>Gerçek veriyle takip etmek için</h3>
+      <p class="card-sub">Bu öz-deneyi (veya günlük rutinini) kayıt altına almak için basit bir yerel web formu var: <code>python -m src.webapp.app</code> → <code>http://127.0.0.1:5000</code>. Girdiğin veriler aynı şemada (bu raporun üretildiği sentetik veriyle birebir) <code>data/real_sleep_data.csv</code>'ye aktarılır ve tüm pipeline'ı (baseline'lar, Transformer, attention, causality) üzerinde tekrar çalıştırabilirsin — <em>kimlik doğrulama içermez, yalnızca lokal kullanım içindir.</em></p>
     </div>
   </div>
 </section>

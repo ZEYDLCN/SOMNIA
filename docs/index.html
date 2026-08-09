@@ -278,16 +278,16 @@ footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; g
 <header class="topbar">
   <div class="wrap">
     <div class="brand">SOMNIA <span style="color:var(--muted); font-weight:400;">— Kişisel Uyku Kalitesi için Temporal Transformer</span></div>
-    <div class="status-pill"><strong>8/9</strong> adım tamamlandı</div>
+    <div class="status-pill"><strong>9/9</strong> adım tamamlandı</div>
   </div>
 </header>
 
 <section class="hero" style="border-bottom:1px solid var(--line); padding-top:56px;">
   <div class="wrap">
-    <p class="eyebrow">Sonuç Raporu · 2026-08-09 22:32 UTC</p>
+    <p class="eyebrow">Sonuç Raporu · 2026-08-09 22:46 UTC</p>
     <h1 class="serif">"Benim uykumu gerçekten ne bozuyor?"</h1>
     <p class="lede">301 günlük davranışsal/çevresel sinyalden (kafein, stres, ekran süresi, oda sıcaklığı, egzersiz) bir sonraki gecenin uyku kalitesini tahmin eden bir Temporal Transformer; modelin neye baktığını (attention) ve bunun gerçekten nedensel bir kanıt olup olmadığını (Granger causality, confounder analizi) ayrı ayrı sınayan bir araştırma projesi.</p>
-    <div class="pipeline"><div class="pipeline-step done"><div class="num">✓ 1</div><div class="name">Sentetik veri</div><div class="bar"></div></div><div class="pipeline-step done"><div class="num">✓ 2</div><div class="name">Ön işleme</div><div class="bar"></div></div><div class="pipeline-step done"><div class="num">✓ 3</div><div class="name">Baseline'lar</div><div class="bar"></div></div><div class="pipeline-step done"><div class="num">✓ 4</div><div class="name">Transformer</div><div class="bar"></div></div><div class="pipeline-step done"><div class="num">✓ 5</div><div class="name">Eğitim</div><div class="bar"></div></div><div class="pipeline-step done"><div class="num">✓ 6</div><div class="name">Attention</div><div class="bar"></div></div><div class="pipeline-step done"><div class="num">✓ 7</div><div class="name">Nedensellik</div><div class="bar"></div></div><div class="pipeline-step done"><div class="num">✓ 8</div><div class="name">Rapor</div><div class="bar"></div></div><div class="pipeline-step pending"><div class="num">○ 9</div><div class="name">Gerçek veri</div><div class="bar"></div></div></div>
+    <div class="pipeline"><div class="pipeline-step done"><div class="num">✓ 1</div><div class="name">Sentetik veri</div><div class="bar"></div></div><div class="pipeline-step done"><div class="num">✓ 2</div><div class="name">Ön işleme</div><div class="bar"></div></div><div class="pipeline-step done"><div class="num">✓ 3</div><div class="name">Baseline'lar</div><div class="bar"></div></div><div class="pipeline-step done"><div class="num">✓ 4</div><div class="name">Transformer</div><div class="bar"></div></div><div class="pipeline-step done"><div class="num">✓ 5</div><div class="name">Eğitim</div><div class="bar"></div></div><div class="pipeline-step done"><div class="num">✓ 6</div><div class="name">Attention</div><div class="bar"></div></div><div class="pipeline-step done"><div class="num">✓ 7</div><div class="name">Nedensellik</div><div class="bar"></div></div><div class="pipeline-step done"><div class="num">✓ 8</div><div class="name">Rapor</div><div class="bar"></div></div><div class="pipeline-step done"><div class="num">✓ 9</div><div class="name">Gerçek veri</div><div class="bar"></div></div></div>
   </div>
 </section>
 
@@ -422,6 +422,10 @@ footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; g
         <li><strong>Karşılaştır:</strong> İki haftanın ortalama sleep_quality'sini Welch t-test ile kıyasla — <code>src/analysis/causality.py</code> içindeki <code>caffeine_timing_natural_experiment</code> fonksiyonu bunu otomatik yapar.</li>
       </ol>
       <p class="card-sub">Tam öneri ve sınırlamalar: <a href="../reports/self_experiment_recommendation.md">reports/self_experiment_recommendation.md</a></p>
+    </div>
+    <div class="card" style="margin-top:20px;">
+      <h3>Gerçek veriyle takip etmek için</h3>
+      <p class="card-sub">Bu öz-deneyi (veya günlük rutinini) kayıt altına almak için basit bir yerel web formu var: <code>python -m src.webapp.app</code> → <code>http://127.0.0.1:5000</code>. Girdiğin veriler aynı şemada (bu raporun üretildiği sentetik veriyle birebir) <code>data/real_sleep_data.csv</code>'ye aktarılır ve tüm pipeline'ı (baseline'lar, Transformer, attention, causality) üzerinde tekrar çalıştırabilirsin — <em>kimlik doğrulama içermez, yalnızca lokal kullanım içindir.</em></p>
     </div>
   </div>
 </section>

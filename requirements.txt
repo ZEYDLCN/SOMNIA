@@ -6,4 +6,5 @@ xgboost>=2.0
 torch>=2.2
 matplotlib>=3.8
 statsmodels>=0.14
+flask>=3.0
 pytest>=8.0
