@@ -1,0 +1,137 @@
+{
+  "confounder_analysis_caffeine_stress": {
+    "x": "caffeine_mg",
+    "y": "sleep_quality",
+    "control": "stress_score",
+    "raw_pearson_r": -0.17326513452811382,
+    "raw_p_value": 0.0026011469123183944,
+    "partial_r_controlling_for_control": -0.13280725084763711,
+    "partial_p_value": 0.02139800423741534,
+    "attenuation": -0.0404578836804767
+  },
+  "caffeine_timing_natural_experiment": {
+    "window_hours": 6.0,
+    "n_close_to_bed": 130,
+    "n_far_from_bed": 170,
+    "mean_sleep_quality_close": 5.973076923076923,
+    "mean_sleep_quality_far": 6.6098235294117655,
+    "difference": 0.6367466063348424,
+    "welch_t_stat": -4.739188494362672,
+    "p_value": 3.4996166059007576e-06,
+    "note": "Bu bir gözlemsel karşılaştırmadır (randomize deney değil); gruplar arası fark başka confounder'lardan (ör. o gün stres düzeyi, çalışma temposu) kaynaklanıyor olabilir."
+  },
+  "granger_causality": [
+    {
+      "feature": "stress_score",
+      "p_value_per_lag": {
+        "1": 3.887036748851141e-06,
+        "2": 2.1847517178459054e-06,
+        "3": 3.004644722944628e-05,
+        "4": 3.5812981598054162e-06,
+        "5": 1.2815130120754924e-05
+      },
+      "best_lag": 2,
+      "best_p_value": 2.1847517178459054e-06,
+      "significant_at_0.05": true
+    },
+    {
+      "feature": "caffeine_mg",
+      "p_value_per_lag": {
+        "1": 0.7531580032588961,
+        "2": 0.7520921964051248,
+        "3": 0.5802697660466815,
+        "4": 0.6269180986157866,
+        "5": 0.7348897634450401
+      },
+      "best_lag": 3,
+      "best_p_value": 0.5802697660466815,
+      "significant_at_0.05": false
+    },
+    {
+      "feature": "caffeine_hours_before_bed",
+      "p_value_per_lag": {
+        "1": 0.19583685460600012,
+        "2": 0.4202288003319676,
+        "3": 0.43849867592086755,
+        "4": 0.5220907712062397,
+        "5": 0.6580054323124637
+      },
+      "best_lag": 1,
+      "best_p_value": 0.19583685460600012,
+      "significant_at_0.05": false
+    },
+    {
+      "feature": "screen_time_before_bed_min",
+      "p_value_per_lag": {
+        "1": 0.10940648063711461,
+        "2": 0.2664880753041972,
+        "3": 0.2818165355217695,
+        "4": 0.4101384769558014,
+        "5": 0.310728830962213
+      },
+      "best_lag": 1,
+      "best_p_value": 0.10940648063711461,
+      "significant_at_0.05": false
+    },
+    {
+      "feature": "room_temp_c",
+      "p_value_per_lag": {
+        "1": 0.9479343975294994,
+        "2": 0.8902131232864513,
+        "3": 0.833934388954166,
+        "4": 0.8931394341186122,
+        "5": 0.924315528441556
+      },
+      "best_lag": 3,
+      "best_p_value": 0.833934388954166,
+      "significant_at_0.05": false
+    },
+    {
+      "feature": "noise_level_db",
+      "p_value_per_lag": {
+        "1": 0.7276176262479821,
+        "2": 0.596382000343054,
+        "3": 0.7991330881099297,
+        "4": 0.33503999754881,
+        "5": 0.4875522434502131
+      },
+      "best_lag": 4,
+      "best_p_value": 0.33503999754881,
+      "significant_at_0.05": false
+    },
+    {
+      "feature": "exercise_minutes",
+      "p_value_per_lag": {
+        "1": 0.7090063001006192,
+        "2": 0.8129982173865619,
+        "3": 0.9440719005892716,
+        "4": 0.9555012108324279,
+        "5": 0.929294248224883
+      },
+      "best_lag": 1,
+      "best_p_value": 0.7090063001006192,
+      "significant_at_0.05": false
+    },
+    {
+      "feature": "last_meal_delta_hr",
+      "p_value_per_lag": {
+        "1": 0.24850884084193786,
+        "2": 0.4904802874757018,
+        "3": 0.5742108467721128,
+        "4": 0.6047692815686296,
+        "5": 0.7358582661315947
+      },
+      "best_lag": 1,
+      "best_p_value": 0.24850884084193786,
+      "significant_at_0.05": false
+    }
+  ],
+  "self_experiment_recommendation_path": "reports/self_experiment_recommendation.md",
+  "limitations": [
+    "301 günlük tek-kişilik veri; genellenemez.",
+    "Öz-bildirim (stress_score, sleep_quality) gürültülü/öznel.",
+    "Ölçülmeyen confounder'lar (hastalık, seyahat, jet lag) olası.",
+    "Granger causality durağanlık (stationarity) varsayar; bu kontrol edilmedi.",
+    "Çoklu karşılaştırma düzeltmesi (ör. Bonferroni) uygulanmadı — 8 özellik x 5 lag test edildi, p<0.05 eşiği rastgele bazı 'anlamlı' sonuçlar üretebilir."
+  ]
+}

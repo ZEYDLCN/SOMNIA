@@ -17,7 +17,7 @@ Detaylı problem tanımı, hedefler, mimari ve yol haritası için:
 - [x] 4. Temporal Transformer modeli (PyTorch, sıfırdan) → `src/models/transformer.py`
 - [x] 5. Eğitim döngüsü + walk-forward validation → `src/models/train_transformer.py`
 - [x] 6. Attention / feature importance görselleştirme → `src/models/interpret.py`
-- [ ] 7. Correlation vs causation analiz modülü (ablation + Granger testi)
+- [x] 7. Correlation vs causation analiz modülü (confounder + Granger + öz-deney) → `src/analysis/causality.py`
 - [ ] 8. Sonuç raporu
 - [ ] 9. (Opsiyonel) Gerçek veri entegrasyonu
 
@@ -41,6 +41,9 @@ src/
                              stopping, baseline karşılaştırması
     interpret.py             attention haritaları + permutation importance
                              ile çapraz doğrulama (adım 6)
+  analysis/
+    causality.py             confounder analizi, Granger causality testleri,
+                             öz-deney (self-experiment) önerisi (adım 7)
 notebooks/                  keşif / analiz defterleri
 checkpoints/                 en iyi model ağırlıkları (.pt, gitignore'da)
 reports/                    çıktı grafikleri, sonuç raporları
@@ -53,6 +56,8 @@ reports/                    çıktı grafikleri, sonuç raporları
   attention_day_importance.png    hangi geçmiş gün daha etkili
   attention_vs_permutation.png    iki bağımsız yöntemin kıyası
   interpretability_results.json   sayısal sonuçlar + Spearman korelasyonu
+  causality_results.json          confounder + Granger causality sonuçları
+  self_experiment_recommendation.md  kullanıcıya özel A/B öz-deney önerisi
 ```
 
 ## Kurulum
@@ -161,5 +166,67 @@ python -m src.models.interpret
 
 Bu bulgular, projenin akademik iddiasını (attention ≠ nedensellik kanıtı,
 hatta tek başına güvenilir bir önem ölçümü bile değil) somut veriyle
-destekliyor. Adım 7'de Granger causality ve confounder analiziyle devam
-edilecek.
+destekliyor.
+
+## Correlation vs Causation analizi
+
+```bash
+python -m src.analysis.causality
+```
+
+Projenin akademik merkezi (bkz. docs/plan.md §5.3-5.5). Üç bacak:
+
+**1. Confounder analizi — kafein → uyku kalitesi, stres kontrollü**
+
+| | r | p |
+|---|---|---|
+| Ham korelasyon (caffeine_mg, sleep_quality) | −0.173 | 0.0026 |
+| Kısmi korelasyon (stress_score kontrollü) | −0.133 | 0.0214 |
+
+Kısmi korelasyon ham korelasyondan zayıf (attenuation −0.040) ama
+tamamen kaybolmuyor — stres, kafein-uyku ilişkisinin bir kısmını
+açıklıyor olabilir (ground truth'ta bilerek gömülen
+`stress_confounds_caffeine=0.35` ile tutarlı) ama tek başına ilişkiyi
+tam ortadan kaldırmıyor.
+
+**Doğal deney — kafein yatıştan 6 saatten az önce vs sonra:**
+
+Yakın (n=130): ort. sleep_quality=5.97 vs. Uzak (n=170): ort.
+sleep_quality=6.61 (fark +0.64, Welch t-test p<0.0001). Bu, gözlemsel
+bir karşılaştırmadır (randomize deney değil) — gruplar arası fark başka
+confounder'lardan kaynaklanıyor olabilir; yine de ground truth'taki
+6 saatlik pencere varsayımıyla dikkat çekici derecede tutarlı.
+
+**2. Granger causality testleri (maxlag=5):**
+
+| özellik | en iyi p | lag | anlamlı mı (p<0.05)? |
+|---|---|---|---|
+| stress_score | 0.0000 | 2 | ✅ |
+| screen_time_before_bed_min | 0.109 | 1 | ❌ |
+| caffeine_hours_before_bed | 0.196 | 1 | ❌ |
+| last_meal_delta_hr | 0.249 | 1 | ❌ |
+| noise_level_db | 0.335 | 4 | ❌ |
+| caffeine_mg | 0.580 | 3 | ❌ |
+| exercise_minutes | 0.709 | 1 | ❌ |
+| room_temp_c | 0.834 | 3 | ❌ |
+
+Yalnızca `stress_score` klasik Granger testinde anlamlı çıkıyor. Dikkat
+çekici bir metodolojik bulgu: `caffeine_hours_before_bed` Granger testinde
+anlamsız (p=0.196) ama yukarıdaki basit grup karşılaştırmasında çok
+anlamlı (p<0.0001). Bunun nedeni muhtemelen kafein-uyku ilişkisinin
+**günler-arası gecikmeli** değil, **aynı gün eşik-tabanlı (6 saat sınırı)**
+bir etki olması — Granger'ın doğrusal gecikme modeli bu tür eşik
+etkilerini yakalamakta zayıf. Bu, "tek bir istatistiksel test yeterli
+değil, farklı yöntemler farklı ilişki türlerine duyarlı" dersini somut
+şekilde gösteriyor.
+
+**3. Öz-deney önerisi** — `reports/self_experiment_recommendation.md`:
+2 haftalık kontrollü bir A/B tasarımı (1 hafta kafein saatini sabitle,
+1 hafta belirli bir saatten sonra kafeini tamamen kes), neden bunun
+korelasyondan daha güçlü bir nedensellik kanıtı olduğu, ve
+sınırlamaları (n=1, placebo etkisi, kısa süre).
+
+**Genel sınırlamalar** (`reports/causality_results.json` içinde
+listelendi): 301 günlük tek-kişilik veri, öz-bildirim gürültüsü,
+ölçülmeyen confounder'lar, durağanlık kontrolü yapılmadı, çoklu
+karşılaştırma düzeltmesi uygulanmadı (8 özellik × 5 lag test edildi).
