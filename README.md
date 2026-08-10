@@ -66,8 +66,8 @@ src/
     build_report.py          reports/*.json'dan tek sayfalık HTML dashboard
                              üretir (adım 8) → docs/index.html
   webapp/
-    app.py, db.py             günlük veri girişi için lokal Flask uygulaması
-                             (adım 9) → data/real_sleep_data.csv
+    app.py, db.py             çok kullanıcılı günlük veri girişi Flask
+                             uygulaması (adım 9) → data/real_sleep_data_<kullanıcı>.csv
     templates/, static/       form arayüzü (dashboard ile aynı tasarım dili)
 notebooks/                  keşif / analiz defterleri
 checkpoints/                 en iyi model ağırlıkları (.pt, gitignore'da)
