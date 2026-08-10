@@ -50,6 +50,13 @@ from src.webapp import db
 app = Flask(__name__)
 app.secret_key = os.environ.get("SOMNIA_SECRET_KEY", "somnia-local-dev-only")
 
+# Modül import edilir edilmez (hem `python -m src.webapp.app` hem WSGI
+# sunucusunun `from src.webapp.app import app` importu) tabloların var
+# olduğundan emin ol. Önceden bu sadece bazı route'larda (index, save_entry,
+# export) çağrılıyordu — /register veya /login ilk istek olduğunda
+# (ör. taze bir veritabanında) 'no such table: users' hatası veriyordu.
+db.init_db()
+
 PUBLIC_ENDPOINTS = {"login", "register", "static"}
 
 

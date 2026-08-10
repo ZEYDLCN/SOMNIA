@@ -49,6 +49,35 @@ def _login(c, username="alice", password="password123"):
     return c.post("/login", data={"username": username, "password": password}, follow_redirects=True)
 
 
+def test_register_works_on_fresh_db_without_prior_init(tmp_path, monkeypatch):
+    """Regresyon: PythonAnywhere'de görülen 'no such table: users' hatası.
+    Önceden db.init_db() sadece bazı route'larda (index, save_entry,
+    export) çağrılıyordu; /register veritabanı dosyası hiç yokken ilk
+    istek olursa tablo bulunamıyordu. app.py artık modül import
+    edilirken init_db() çağırıyor — bu test o garantiyi, fixture'ın
+    kendi (maskeleyen) init_db() çağrısı OLMADAN doğrular."""
+    from src.webapp import db as db_module
+
+    db_path = tmp_path / "fresh.db"
+    assert not db_path.exists()
+    monkeypatch.setattr(db_module, "DB_PATH", db_path)
+    monkeypatch.setattr(db_module, "EXPORT_DIR", tmp_path)
+    # BİLEREK db_module.init_db() çağrılmıyor — app modülünün kendi
+    # başına tabloyu oluşturması gerekiyor.
+
+    import importlib as _importlib
+
+    from src.webapp import app as app_module
+
+    _importlib.reload(app_module)  # reload sırasında modül seviyesinde db.init_db() çalışır
+    app_module.app.config.update(TESTING=True)
+    with app_module.app.test_client() as c:
+        resp = _register(c, "freshuser", "password123")
+        assert resp.status_code == 200
+        assert "Henüz kayıt yok".encode() in resp.data
+        assert db_module.get_user_by_username("freshuser") is not None
+
+
 # ---------------------------------------------------------------------------
 # Kimlik doğrulama gerekliliği
 # ---------------------------------------------------------------------------
