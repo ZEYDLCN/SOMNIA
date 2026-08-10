@@ -55,6 +55,46 @@ def logo_symbol_svg(h: float, mist: bool = False) -> str:
         f'stroke-linecap="round" stroke-linejoin="round"/>{circles}</svg>'
     )
 
+
+# ---------------------------------------------------------------------------
+# Açık/koyu tema değiştirme — kullanıcı elle seçebilsin, tercih hatırlansın.
+# CSS zaten :root[data-theme="dark"] / :root[data-theme="light"] tokenlarını
+# tanımlıyor (bkz. CSS sabiti); burada sadece o attribute'u set eden UI +
+# script var. THEME_INIT_SCRIPT <head>'de, CSS'den ÖNCE çalışmalı ki
+# sayfa yanlış temayla bir an görünüp sonra değişmesin (flash of
+# wrong theme önleme).
+THEME_INIT_SCRIPT = """<script>
+(function () {
+  try {
+    var t = localStorage.getItem('somnia-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>"""
+
+THEME_TOGGLE_BUTTON = """<button id="theme-toggle" class="theme-toggle" type="button" aria-label="Açık/koyu temayı değiştir">
+  <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M2.5 12H5M19 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+  <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11Z"/></svg>
+</button>"""
+
+THEME_WIRING_SCRIPT = """<script>
+(function () {
+  var btn = document.getElementById('theme-toggle');
+  if (!btn) return;
+  function current() {
+    var attr = document.documentElement.getAttribute('data-theme');
+    if (attr === 'light' || attr === 'dark') return attr;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  btn.addEventListener('click', function () {
+    var next = current() === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('somnia-theme', next); } catch (e) {}
+  });
+})();
+</script>"""
+
+
 MODEL_LABELS = {
     "naive": "Naive",
     "linear_regression": "Linear Regression",
@@ -487,6 +527,36 @@ a { color: var(--c-accent); }
 .nav-cta.ghost { color: var(--muted); }
 .nav-cta.ghost:hover { border-bottom-color: var(--muted); }
 
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+.theme-toggle:hover { background: var(--surface-raised); }
+.theme-toggle:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+.theme-toggle .icon-moon { display: block; }
+.theme-toggle .icon-sun { display: none; }
+/* Sistem koyu tema, elle açık seçilmemişse -> güneş göster (tıkla -> açık tema) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-toggle .icon-moon { display: none; }
+  :root:not([data-theme="light"]) .theme-toggle .icon-sun { display: block; }
+}
+/* Elle koyu seçilmişse (sistemden bağımsız) -> güneş göster */
+:root[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+:root[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+/* Elle açık seçilmişse (sistemden bağımsız) -> ay göster */
+:root[data-theme="light"] .theme-toggle .icon-moon { display: block; }
+:root[data-theme="light"] .theme-toggle .icon-sun { display: none; }
+
 /* ---------- splash (marka açılış anı) ---------- */
 #splash {
   position: fixed;
@@ -797,6 +867,7 @@ def build_landing(d: dict) -> str:
 <title>SOMNIA — Kişisel Uyku Zekası</title>
 <meta name="description" content="SOMNIA, günlük alışkanlıklarını uyku kaliteninle ilişkilendirip sana özel örüntüleri ortaya çıkarır." />
 <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+{THEME_INIT_SCRIPT}
 <style>{CSS}</style>
 </head>
 <body>
@@ -808,9 +879,10 @@ def build_landing(d: dict) -> str:
 <header class="topbar">
   <div class="wrap">
     <div class="brand">{logo_symbol_svg(22)}<span>SOMNIA</span></div>
-    <nav style="display:flex; align-items:center; gap:14px;">
+    <nav style="display:flex; align-items:center; gap:10px;">
       <a href="report.html" class="nav-cta ghost">Araştırma raporu</a>
       <a href="{WEBAPP_URL}" class="nav-cta">Kendi verini gir →</a>
+      {THEME_TOGGLE_BUTTON}
     </nav>
   </div>
 </header>
@@ -840,6 +912,7 @@ def build_landing(d: dict) -> str:
     if (el) el.remove();
   }}, 2700);
 </script>
+{THEME_WIRING_SCRIPT}
 
 </body>
 </html>
@@ -872,6 +945,7 @@ def build_report_page(d: dict) -> str:
 <title>SOMNIA — Araştırma Raporu</title>
 <meta name="description" content="Kişisel Uyku Kalitesi için Temporal Transformer: model karşılaştırması, attention yorumlanabilirliği ve correlation-vs-causation analizi." />
 <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+{THEME_INIT_SCRIPT}
 <style>{CSS}</style>
 </head>
 <body>
@@ -879,9 +953,10 @@ def build_report_page(d: dict) -> str:
 <header class="topbar">
   <div class="wrap">
     <a href="index.html" class="brand" style="text-decoration:none; color:inherit;">{logo_symbol_svg(22)}<span>SOMNIA</span></a>
-    <nav style="display:flex; align-items:center; gap:14px;">
+    <nav style="display:flex; align-items:center; gap:10px;">
       <a href="index.html" class="nav-cta ghost">← Ana sayfa</a>
       <a href="{WEBAPP_URL}" class="nav-cta">Kendi verini gir →</a>
+      {THEME_TOGGLE_BUTTON}
     </nav>
   </div>
 </header>
@@ -1044,6 +1119,7 @@ def build_report_page(d: dict) -> str:
     <div><a href="index.html">← Ana sayfa</a> · <a href="https://github.com/ZEYDLCN/SOMNIA">github.com/ZEYDLCN/SOMNIA</a> · <a href="plan.md">proje planı</a></div>
   </div>
 </footer>
+{THEME_WIRING_SCRIPT}
 
 </body>
 </html>
