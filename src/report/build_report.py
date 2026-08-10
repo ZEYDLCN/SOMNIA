@@ -714,7 +714,7 @@ footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; g
 """
 
 
-def build() -> str:
+def _compute():
     baselines = _load("baseline_results.json")
     transformer = _load("transformer_results.json")
     interp = _load("interpretability_results.json")
@@ -781,13 +781,21 @@ def build() -> str:
 
     limits_html = "".join(f"<li>{esc(l)}</li>" for l in causality["limitations"])
 
-    html = f"""<!doctype html>
+    return locals()
+
+
+def build_landing(d: dict) -> str:
+    """Ana sayfa (docs/index.html) — SAF ürün karşılama ekranı, hiçbir
+    teknik detay yok. Kullanıcı geri bildirimi: ilk açılan ekran bir
+    'rapor' değil, bir 'app' gibi hissettirmeli. Teknik döküm ayrı bir
+    sayfada (report.html)."""
+    return f"""<!doctype html>
 <html lang="tr">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>SOMNIA — Sonuç Raporu</title>
-<meta name="description" content="Kişisel Uyku Kalitesi için Temporal Transformer: model karşılaştırması, attention yorumlanabilirliği ve correlation-vs-causation analizi." />
+<title>SOMNIA — Kişisel Uyku Zekası</title>
+<meta name="description" content="SOMNIA, günlük alışkanlıklarını uyku kaliteninle ilişkilendirip sana özel örüntüleri ortaya çıkarır." />
 <link rel="icon" type="image/svg+xml" href="favicon.svg" />
 <style>{CSS}</style>
 </head>
@@ -801,23 +809,82 @@ def build() -> str:
   <div class="wrap">
     <div class="brand">{logo_symbol_svg(22)}<span>SOMNIA</span></div>
     <nav style="display:flex; align-items:center; gap:14px;">
-      <a href="#research" class="nav-cta ghost">Araştırma raporu</a>
+      <a href="report.html" class="nav-cta ghost">Araştırma raporu</a>
       <a href="{WEBAPP_URL}" class="nav-cta">Kendi verini gir →</a>
     </nav>
   </div>
 </header>
 
-<section class="hero">
+<section class="hero" style="border-bottom:none; min-height:calc(100vh - 65px); display:flex; align-items:center;">
   <div class="wrap">
     <p class="eyebrow">Kişisel Uyku Zekası</p>
     <h1 class="serif">"Benim uykumu gerçekten ne bozuyor?"</h1>
     <p class="lede">Kafein, stres, ekran süresi, oda sıcaklığı... Günlük alışkanlıkların uyku kaliteni nasıl etkiliyor? SOMNIA, geçmiş günlerini öğrenip bir sonraki gecen için tahmin üretir — ve daha önemlisi, hangi ilişkinin gerçek, hangisinin tesadüf olduğunu ayırt etmene yardımcı olur.</p>
     <div class="hero-actions">
       <a href="{WEBAPP_URL}" class="btn-primary">Kendi verini gir →</a>
-      <a href="#research" class="btn-secondary">Araştırmayı incele ↓</a>
+      <a href="report.html" class="btn-secondary">Araştırmayı incele</a>
     </div>
   </div>
 </section>
+
+<footer>
+  <div class="wrap">
+    <div>SOMNIA, {datetime.now().year}</div>
+    <div><a href="report.html">Araştırma raporu</a> · <a href="https://github.com/ZEYDLCN/SOMNIA">github.com/ZEYDLCN/SOMNIA</a></div>
+  </div>
+</footer>
+
+<script>
+  window.setTimeout(function () {{
+    var el = document.getElementById('splash');
+    if (el) el.remove();
+  }}, 2700);
+</script>
+
+</body>
+</html>
+"""
+
+
+def build_report_page(d: dict) -> str:
+    """Teknik rapor (docs/report.html) — model karşılaştırması, attention,
+    correlation-vs-causation. Landing sayfasından ayrı; isteyen buraya
+    'Araştırma raporu' linkiyle geliyor."""
+    (
+        generated_at, n_done, pipeline_steps, pipeline_html,
+        baselines, transformer, interp, causality,
+        reduction_pct, tft_vs_xgb_pct, model_rows,
+        spearman, top_feature,
+        confound, nat_exp, granger, n_significant, granger_rows, limits_html,
+    ) = (
+        d["generated_at"], d["n_done"], d["pipeline_steps"], d["pipeline_html"],
+        d["baselines"], d["transformer"], d["interp"], d["causality"],
+        d["reduction_pct"], d["tft_vs_xgb_pct"], d["model_rows"],
+        d["spearman"], d["top_feature"],
+        d["confound"], d["nat_exp"], d["granger"], d["n_significant"], d["granger_rows"], d["limits_html"],
+    )
+
+    return f"""<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SOMNIA — Araştırma Raporu</title>
+<meta name="description" content="Kişisel Uyku Kalitesi için Temporal Transformer: model karşılaştırması, attention yorumlanabilirliği ve correlation-vs-causation analizi." />
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<style>{CSS}</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a href="index.html" class="brand" style="text-decoration:none; color:inherit;">{logo_symbol_svg(22)}<span>SOMNIA</span></a>
+    <nav style="display:flex; align-items:center; gap:14px;">
+      <a href="index.html" class="nav-cta ghost">← Ana sayfa</a>
+      <a href="{WEBAPP_URL}" class="nav-cta">Kendi verini gir →</a>
+    </nav>
+  </div>
+</header>
 
 <section id="research" class="research-intro">
   <div class="wrap">
@@ -974,30 +1041,29 @@ def build() -> str:
 <footer>
   <div class="wrap">
     <div>PyTorch · pandas/numpy · scikit-learn + XGBoost · statsmodels · SOMNIA, {datetime.now().year}</div>
-    <div><a href="https://github.com/ZEYDLCN/SOMNIA">github.com/ZEYDLCN/SOMNIA</a> · <a href="../docs/plan.md">proje planı</a></div>
+    <div><a href="index.html">← Ana sayfa</a> · <a href="https://github.com/ZEYDLCN/SOMNIA">github.com/ZEYDLCN/SOMNIA</a> · <a href="plan.md">proje planı</a></div>
   </div>
 </footer>
-
-<script>
-  // Splash animasyonu (CSS, JS'siz de doğru çalışır) tamamlandıktan sonra
-  // öğeyi DOM'dan kaldırır — erişilebilirlik ağacında gereksiz kalmasın.
-  window.setTimeout(function () {{
-    var el = document.getElementById('splash');
-    if (el) el.remove();
-  }}, 2700);
-</script>
 
 </body>
 </html>
 """
-    return html
+
+
+REPORT_PAGE_PATH = ROOT / "docs" / "report.html"
 
 
 def main() -> None:
-    html = build()
+    data = _compute()
+
+    landing_html = build_landing(data)
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUT_PATH.write_text(html, encoding="utf-8")
+    OUT_PATH.write_text(landing_html, encoding="utf-8")
     print(f"Kaydedildi: {OUT_PATH}")
+
+    report_html = build_report_page(data)
+    REPORT_PAGE_PATH.write_text(report_html, encoding="utf-8")
+    print(f"Kaydedildi: {REPORT_PAGE_PATH}")
 
 
 if __name__ == "__main__":

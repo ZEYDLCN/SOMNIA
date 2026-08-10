@@ -11,11 +11,14 @@ Transformer projesi.
 Detaylı problem tanımı, hedefler, mimari ve yol haritası için:
 [`docs/plan.md`](docs/plan.md)
 
-**Görsel sonuç raporu (dashboard):** [`docs/index.html`](docs/index.html) —
-tarayıcıda açarak veya GitHub Pages'i `/docs` klasöründen etkinleştirerek
+**Web sitesi:** [`docs/index.html`](docs/index.html) — ürün karşılama
+sayfası (splash animasyonu + tanıtım, teknik detay yok). Teknik
+araştırma raporu (dashboard) ayrı sayfada: [`docs/report.html`](docs/report.html)
+— oraya karşılama sayfasındaki "Araştırma raporu" linkinden ulaşılır.
+Tarayıcıda açarak veya GitHub Pages'i `/docs` klasöründen etkinleştirerek
 görüntüleyebilirsin. Tüm sayılar `reports/*.json` dosyalarından
 üretilir, koda gömülü değildir (`python -m src.report.build_report` ile
-yeniden üretilir).
+her iki sayfa da yeniden üretilir).
 
 ## Durum
 
@@ -38,7 +41,8 @@ data/                       ham ve üretilmiş veri
                              (SADECE doğrulama için — modele verilmez)
 docs/
   plan.md                   proje planı
-  index.html                üretilen sonuç raporu (dashboard)
+  index.html                ürün karşılama sayfası (splash + hero, teknik detay yok)
+  report.html               teknik araştırma raporu (dashboard) — index.html'den link
   favicon.svg               marka sembolü (favicon)
   assets/                   logo dosyaları (Figma'dan: "Arc Wave" S sembolü)
     somnia-logo-horizontal.svg   sembol + wordmark (README, paylaşım)
