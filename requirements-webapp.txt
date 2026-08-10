@@ -1,7 +1,15 @@
 # Sadece src/webapp/ (günlük veri girişi formu) için gerekli bağımlılıklar.
-# Ana requirements.txt (torch, xgboost, vb.) ML pipeline'ı içindir ve
-# webapp'in ÇALIŞMASI İÇİN GEREKMEZ — bu ayrı/hafif dosya, Render gibi
-# ücretsiz platformların sınırlı build süresi/diskiyle uyumlu, hızlı bir
-# deploy sağlamak için var (bkz. DEPLOY.md).
+# Ana requirements.txt (torch, xgboost, vb.) ML EĞİTİM pipeline'ı içindir ve
+# webapp'in ÇALIŞMASI İÇİN GEREKMEZ — bu ayrı/hafif dosya, PythonAnywhere/
+# Render gibi ücretsiz platformların sınırlı disk/build kotasıyla uyumlu,
+# hızlı bir deploy sağlamak için var (bkz. DEPLOY.md).
+#
+# onnxruntime + pandas + numpy: "Bugünkü tahmin" özelliği için — eğitilmiş
+# Temporal Transformer, ONNX'e export edildi (src/models/export_onnx.py,
+# src/webapp/model/). Tam PyTorch (torch) yüzlerce MB'tır; ONNX Runtime
+# ~50-60MB'tır ve sadece çıkarım (inference) için yeterlidir.
 flask>=3.0
 gunicorn>=21.2
+onnxruntime>=1.18
+pandas>=2.1
+numpy>=1.26

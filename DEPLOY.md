@@ -102,9 +102,12 @@ sonra **Web** sekmesinden **Reload**'a bas. 2 adım, ~10 saniye.
 ### Neden ayrı `requirements-webapp.txt`?
 
 Ana `requirements.txt` (torch, xgboost, statsmodels...) sadece ML
-pipeline'ı içindir; webapp'in bunlardan HİÇBİRİNE ihtiyacı yok (sadece
-Flask + stdlib `sqlite3`). Bu ayrım, hem PythonAnywhere'in disk/CPU
-kotasına hem Render'ın build sınırlarına takılmamak için var.
+**eğitim** pipeline'ı içindir; webapp bunlardan hiçbirine ihtiyaç
+duymaz. Webapp sadece Flask + stdlib `sqlite3` + "Bu geceki tahmin"
+özelliği için hafif üç paket (`onnxruntime`, `pandas`, `numpy` —
+toplam ~100MB, tam PyTorch'un çok altında) kullanır. Bu ayrım, hem
+PythonAnywhere'in disk/CPU kotasına hem Render'ın build sınırlarına
+takılmamak için var — bkz. yukarıdaki "Bu geceki tahmin" bölümü.
 
 ---
 

@@ -45,7 +45,7 @@ from flask import (
     url_for,
 )
 
-from src.webapp import db
+from src.webapp import db, inference
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SOMNIA_SECRET_KEY", "somnia-local-dev-only")
@@ -173,6 +173,26 @@ def _validate(form: dict) -> tuple[dict, list[str]]:
     return cleaned, errors
 
 
+def _prediction_context(entries: list) -> dict:
+    """Kullanıcının son kayıtlarından (en yeniden en eskiye sıralı)
+    model tahmini üretmeyi dener. Model dosyası eksikse/çıkarım
+    başarısız olursa sayfa ÇÖKMEZ — sadece tahmin kartı gösterilmez."""
+    try:
+        w = inference.window_size()
+    except Exception:
+        return {"available": False}
+
+    if len(entries) < w:
+        return {"available": False, "have": len(entries), "need": w}
+
+    try:
+        pred = inference.predict_next_sleep_quality(entries[:w])
+    except Exception:
+        return {"available": False, "have": len(entries), "need": w}
+
+    return {"available": True, "value": pred, "window": w}
+
+
 @app.route("/", methods=["GET"])
 def index():
     db.init_db()
@@ -199,6 +219,7 @@ def index():
         today=date_cls.today().isoformat(),
         n_entries=db.count_entries(user["id"]),
         username=user["username"],
+        prediction=_prediction_context(entries),
     )
 
 

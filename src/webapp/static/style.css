@@ -84,6 +84,20 @@ main { padding: 32px 0 60px; }
 .card h2 { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; font-weight: 500; font-size: 1.25rem; margin: 0 0 4px; }
 .card .card-sub { color: var(--muted); font-size: 0.85rem; margin: 0 0 20px; }
 
+.prediction-card { border-color: var(--c-accent); background: var(--c-accent-soft); }
+.prediction-card h2 { margin-bottom: 8px; }
+.prediction-card .card-sub { margin-bottom: 0; }
+.prediction-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 2.6rem;
+  font-weight: 700;
+  color: var(--c-accent);
+  line-height: 1;
+  margin: 6px 0 14px;
+}
+.prediction-scale { font-size: 1.1rem; font-weight: 400; color: var(--muted); }
+
 fieldset { border: none; padding: 0; margin: 0 0 22px; }
 fieldset legend { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding: 0 0 10px; }
 .field-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }

@@ -242,3 +242,39 @@ def test_export_matches_synthetic_csv_schema(client):
         synthetic_header = next(csv.reader(f))
 
     assert exported_header == synthetic_header
+
+
+# ---------------------------------------------------------------------------
+# "Bu geceki tahmin" (ONNX model çıkarımı)
+# ---------------------------------------------------------------------------
+
+
+def test_prediction_card_shows_progress_before_enough_data(client):
+    c, _ = client
+    _register(c, "alice")
+    resp = c.post("/entries", data=VALID_FORM, follow_redirects=True)
+    assert "0/7 gün".encode() not in resp.data  # 1 kayıt girildi
+    assert "gün daha gir".encode() in resp.data
+
+
+def test_prediction_appears_after_seven_days(client):
+    import datetime as dt
+
+    from src.webapp.inference import ONNX_PATH
+
+    if not ONNX_PATH.exists():
+        import pytest as _pytest
+
+        _pytest.skip("Model export edilmemiş (src/models/export_onnx.py çalıştırılmalı).")
+
+    c, _ = client
+    _register(c, "alice")
+
+    base = dt.date(2026, 1, 1)
+    resp = None
+    for i in range(7):
+        entry = dict(VALID_FORM, date=(base + dt.timedelta(days=i)).isoformat())
+        resp = c.post("/entries", data=entry, follow_redirects=True)
+
+    assert "Bu geceki tahmin".encode() in resp.data
+    assert "/10".encode() in resp.data

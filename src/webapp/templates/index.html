@@ -39,6 +39,19 @@
     {% endif %}
   {% endwith %}
 
+  {% if prediction.available or prediction.need %}
+  <section class="card prediction-card">
+    {% if prediction.available %}
+      <h2>Bu geceki tahmin</h2>
+      <div class="prediction-value">{{ "%.1f"|format(prediction.value) }}<span class="prediction-scale">/10</span></div>
+      <p class="card-sub">Son {{ prediction.window }} günlük verine dayanarak Temporal Transformer'ın tahmini uyku kalitesi. Model sentetik veri üzerinde eğitildi — bu bir <strong>gösterge</strong>dir, kesin bir tıbbi tahmin değildir.</p>
+    {% else %}
+      <h2>Bu geceki tahmin</h2>
+      <p class="card-sub">Tahmin için en az {{ prediction.need }} günlük kayıt gerekiyor — şu an {{ prediction.have }}/{{ prediction.need }} gün var. {{ prediction.need - prediction.have }} gün daha gir, model devreye girsin.</p>
+    {% endif %}
+  </section>
+  {% endif %}
+
   <section class="card">
     <h2>{{ 'Kaydı düzenle' if prefill else 'Bugünü kaydet' }}</h2>
     <p class="card-sub">

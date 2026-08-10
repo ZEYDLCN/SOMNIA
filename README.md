@@ -307,6 +307,32 @@ renk/tipografi sistemini paylaşır.
   Giriş **her ortamda zorunludur** (lokal dahil) — sabit bir kullanıcı
   adı/şifre yok, herkes kendi hesabını açar.
 
+### Bu geceki tahmin (gerçek model çıkarımı)
+
+Kullanıcı en az **7 günlük** kayıt girdiğinde, form eğitilmiş Temporal
+Transformer'ın gerçek tahminini gösterir ("Bu geceki tahmin: X.X/10").
+Tam PyTorch yerine **ONNX Runtime** kullanılır (~50-60MB, torch'un
+yüzlerce MB'ına karşı) — model `src/models/export_onnx.py` ile ONNX'e
+export edilip `src/webapp/model/` altına (küçük dosyalar, ~150KB,
+BİLEREK repoya commit edilir) kaydedilir:
+
+```bash
+python -m src.models.export_onnx
+# -> src/webapp/model/temporal_transformer.onnx
+# -> src/webapp/model/normalizer.json
+```
+
+Model checkpoint'i değiştiğinde (yeniden eğitim sonrası) bu komutu
+tekrar çalıştırıp yeni ONNX dosyalarını commit etmen yeterli — webapp
+tarafında başka bir değişiklik gerekmez. Tahmin, `src/webapp/inference.py`
+içinde `src/data/preprocessing.py`'deki **aynı** feature engineering
+(döngüsel gün encoding, normalizasyon) kullanılarak üretilir, böylece
+eğitim ve çıkarım arasında tutarsızlık olmaz.
+
+**Dürüstçe belirtelim:** model sentetik veri üzerinde eğitildi; gerçek
+kullanıcı verisine uygulamak bir **gösterge**dir, kesin bir tahmin
+değildir — arayüzde de bu şekilde etiketlenir (bkz. docs/plan.md §5, §9).
+
 ## Deployment (ücretsiz)
 
 - **Sonuç raporu** (`docs/index.html`) → GitHub Pages, `.github/workflows/deploy-pages.yml` ile otomatik.
